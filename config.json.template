@@ -1,0 +1,10 @@
+{
+  "GEMINI": {},
+  "TIDAL": {
+    "ENABLED": true
+  },
+  "PREFERENCES": {
+    "DEFAULT_PROVIDER": "tidal"
+  }
+}
+

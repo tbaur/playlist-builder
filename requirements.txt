@@ -1,0 +1,10 @@
+# Runtime dependencies for playlist-builder
+# Python 3.12+ required
+#
+# Version constraints are set to minimum compatible versions.
+# For production use, consider pinning to specific versions.
+
+google-genai>=0.2.0,<1.0.0
+tidalapi>=0.7.0,<1.0.0
+spotipy>=2.23.0,<3.0.0  # EXPERIMENTAL: Spotify support
+

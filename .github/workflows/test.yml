@@ -1,0 +1,91 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+        python-version: ['3.12', '3.13', '3.14']
+        exclude:
+          # Python 3.14 may not be available on all runners yet
+          - os: ubuntu-latest
+            python-version: '3.14'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Cache pip packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-test.txt
+
+    - name: Run tests
+      env:
+        # Set environment variable to indicate CI environment
+        CI: true
+      run: |
+        # Run tests with coverage
+        # Note: Keychain tests will be skipped on non-macOS via sys.platform checks
+        pytest --cov=. --cov-report=xml --cov-report=term-missing -v --tb=short
+
+    - name: Upload coverage to Codecov
+      if: matrix.os == 'macos-latest' && matrix.python-version == '3.12'
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install linting tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 pylint
+
+    - name: Run flake8
+      run: |
+        # Only check for critical errors (E9, F63, F7, F82)
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=.venv,__pycache__,*.pyc || true
+        # General style checks (non-blocking)
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude=.venv,__pycache__,*.pyc || true
+
+    - name: Run pylint
+      run: |
+        # Run pylint on main Python files (non-blocking)
+        pylint --disable=all --enable=E,F --fail-under=0 *.py --ignore=tests || true
+
