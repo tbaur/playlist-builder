@@ -636,11 +636,25 @@ def main():
     
     search_parser = subparsers.add_parser("search", help="Search for tracks")
     search_parser.add_argument("query", help="Search query")
+    search_parser.add_argument("-d", "--debug", action="store_true", help="Enable debug logging")
+    search_parser.add_argument(
+        "-l", "--limit",
+        type=int,
+        default=DEFAULT_LIMIT,
+        help="Maximum tracks to return (1-100)"
+    )
+    search_parser.add_argument(
+        "-m", "--model",
+        type=str,
+        default=GEMINI_MODEL,
+        help=f"Gemini model to use (default: {GEMINI_MODEL})"
+    )
     
     publish_parser = subparsers.add_parser("publish", help="Publish playlist")
     publish_parser.add_argument("provider", choices=["tidal", "spotify"], help="Music provider (tidal, spotify)")
     publish_parser.add_argument("--name", required=True, help="Playlist name")
     publish_parser.add_argument("--replace", action="store_true", help="Replace existing playlist")
+    publish_parser.add_argument("-d", "--debug", action="store_true", help="Enable debug logging")
     
     # Keychain management commands (macOS only)
     keychain_parser = subparsers.add_parser("keychain", help="Manage secrets in macOS Keychain")
