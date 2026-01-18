@@ -255,12 +255,12 @@ class TestTidalProvider:
         
         provider.publish("Test Playlist", tracks_without_id, replace=False, metrics=None)
         
-        # Should only add track with tidal_id
+        # Should only add track with tidal_id (converted to int)
         mock_playlist = provider.session.user.create_playlist.return_value
         mock_playlist.add.assert_called_once()
         call_args = mock_playlist.add.call_args[0][0]
         assert len(call_args) == 1
-        assert call_args[0] == "12345"
+        assert call_args[0] == 12345  # tidal_id is converted to int
     
     @patch('tidal_engine.tidalapi.Session')
     @patch('tidal_engine.get_tidal_session')

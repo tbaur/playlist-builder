@@ -560,10 +560,19 @@ class ChatSession:
                     parts = user_input.split(maxsplit=1)
                     if len(parts) < 2:
                         print(f"{YELLOW}Usage: /publish <playlist name>{RESET}")
-                        print(f"{DIM}Example: /publish \"Late Night Jazz\"{RESET}\n")
+                        print(f"{DIM}Example: /publish \"Late Night Jazz\"{RESET}")
+                        print(f"{DIM}Add --append to add to existing playlist instead of replacing.{RESET}\n")
                         continue
                     
-                    playlist_name = parts[1].strip().strip('"\'')
+                    # Parse playlist name and flags
+                    arg_part = parts[1].strip()
+                    replace_mode = True  # Default: replace existing playlist
+                    
+                    if '--append' in arg_part.lower():
+                        replace_mode = False
+                        arg_part = arg_part.lower().replace('--append', '').strip()
+                    
+                    playlist_name = arg_part.strip().strip('"\'')
                     if not playlist_name:
                         print(f"{RED}Error: Playlist name required.{RESET}\n")
                         continue
@@ -573,13 +582,14 @@ class ChatSession:
                         continue
                     
                     # Publish directly to Tidal
-                    print(f"\n{CYAN}Publishing {len(self.all_tracks)} tracks to Tidal...{RESET}")
+                    mode_text = "Replacing" if replace_mode else "Appending to"
+                    print(f"\n{CYAN}{mode_text} playlist with {len(self.all_tracks)} tracks...{RESET}")
                     try:
                         publish_metrics = MetricsCollector()
                         publish_metrics.start_operation("Publish to Tidal")
                         
                         tracks_data = [asdict(t) for t in self.all_tracks]
-                        self.engine.publish(playlist_name, tracks_data, replace=False, metrics=publish_metrics)
+                        self.engine.publish(playlist_name, tracks_data, replace=replace_mode, metrics=publish_metrics)
                         
                         publish_metrics.end_operation(success=True)
                         print(f"{GREEN}✓{RESET} Published to Tidal: \"{playlist_name}\"")

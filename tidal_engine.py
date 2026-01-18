@@ -293,7 +293,13 @@ class TidalProvider:
                 skipped_count += 1
                 continue
             
-            valid_ids.append(tidal_id)
+            # Ensure tidal_id is an integer (tidalapi requires int, not str)
+            try:
+                valid_ids.append(int(tidal_id))
+            except (ValueError, TypeError):
+                logger.debug(f"Invalid tidal_id: {tidal_id}")
+                skipped_count += 1
+                continue
             quality = track.get('quality', '')
             q_tag = f"{MAGENTA}HI-RES{RESET}" if "HI_RES" in quality else f"{CYAN}HiFi{RESET}"
             score = track.get('score', 0.0)
