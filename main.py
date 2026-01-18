@@ -601,6 +601,12 @@ class ChatSession:
                         print(f"{RED}Error publishing: {e}{RESET}\n")
                     continue
                 
+                # Catch unrecognized commands starting with /
+                if user_input.startswith('/'):
+                    print(f"{YELLOW}Unknown command: {user_input.split()[0]}{RESET}")
+                    print(f"{DIM}Type /help for available commands.{RESET}\n")
+                    continue
+                
                 # Validate query
                 is_valid, error_msg = validate_query(user_input)
                 if not is_valid:
