@@ -572,6 +572,131 @@ class TestChatSession:
         assert session.conversation_history == []
         # Tracks should be preserved
         assert len(session.all_tracks) == 1
+    
+    @patch('google.genai.Client')
+    def test_remove_tracks_by_artist(self, mock_client_class, sample_config):
+        """Test removing tracks by artist name."""
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        
+        mock_engine = MagicMock()
+        session = ChatSession(sample_config, mock_engine)
+        
+        # Add tracks
+        session.all_tracks = [
+            Track(title="Track 1", artist="Elif"),
+            Track(title="Track 2", artist="Other Artist"),
+            Track(title="Track 3", artist="Elif Again"),
+        ]
+        
+        removed = session.remove_tracks("elif")
+        
+        assert removed == 2
+        assert len(session.all_tracks) == 1
+        assert session.all_tracks[0].artist == "Other Artist"
+    
+    @patch('google.genai.Client')
+    def test_remove_tracks_by_title(self, mock_client_class, sample_config):
+        """Test removing tracks by title."""
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        
+        mock_engine = MagicMock()
+        session = ChatSession(sample_config, mock_engine)
+        
+        # Add tracks
+        session.all_tracks = [
+            Track(title="Moonspell", artist="Artist A"),
+            Track(title="Other Track", artist="Artist B"),
+        ]
+        
+        removed = session.remove_tracks("moonspell")
+        
+        assert removed == 1
+        assert len(session.all_tracks) == 1
+        assert session.all_tracks[0].title == "Other Track"
+    
+    @patch('google.genai.Client')
+    def test_remove_tracks_no_match(self, mock_client_class, sample_config):
+        """Test removing tracks with no matches."""
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        
+        mock_engine = MagicMock()
+        session = ChatSession(sample_config, mock_engine)
+        
+        session.all_tracks = [
+            Track(title="Track 1", artist="Artist A"),
+        ]
+        
+        removed = session.remove_tracks("nonexistent")
+        
+        assert removed == 0
+        assert len(session.all_tracks) == 1
+    
+    @patch('google.genai.Client')
+    def test_remove_tracks_empty_list(self, mock_client_class, sample_config):
+        """Test removing tracks from empty list."""
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        
+        mock_engine = MagicMock()
+        session = ChatSession(sample_config, mock_engine)
+        
+        removed = session.remove_tracks("test")
+        
+        assert removed == 0
+    
+    @patch('google.genai.Client')
+    def test_is_refinement_query_dont_like(self, mock_client_class, sample_config):
+        """Test detecting 'I don't like' pattern."""
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        
+        mock_engine = MagicMock()
+        session = ChatSession(sample_config, mock_engine)
+        
+        is_ref, pattern = session._is_refinement_query("I don't like elif")
+        assert is_ref is True
+        assert pattern == "elif"
+        
+        is_ref, pattern = session._is_refinement_query("actually I don't like this artist")
+        assert is_ref is True
+        assert pattern == "this artist"
+    
+    @patch('google.genai.Client')
+    def test_is_refinement_query_remove(self, mock_client_class, sample_config):
+        """Test detecting 'remove' pattern."""
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        
+        mock_engine = MagicMock()
+        session = ChatSession(sample_config, mock_engine)
+        
+        is_ref, pattern = session._is_refinement_query("remove elif")
+        assert is_ref is True
+        assert pattern == "elif"
+        
+        is_ref, pattern = session._is_refinement_query("actually remove the jazz tracks")
+        assert is_ref is True
+        assert pattern == "the jazz tracks"
+    
+    @patch('google.genai.Client')
+    def test_is_refinement_query_not_refinement(self, mock_client_class, sample_config):
+        """Test normal queries are not detected as refinements."""
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        
+        mock_engine = MagicMock()
+        session = ChatSession(sample_config, mock_engine)
+        
+        is_ref, pattern = session._is_refinement_query("find more jazz")
+        assert is_ref is False
+        assert pattern == ""
+        
+        is_ref, pattern = session._is_refinement_query("persian music like lane 8")
+        assert is_ref is False
+        assert pattern == ""
 
 
 class TestCLIArgumentParsing:

@@ -490,6 +490,62 @@ class ChatSession:
         if logger:
             logger.info("Cleared conversation history")
     
+    def _is_refinement_query(self, user_input: str) -> tuple[bool, str]:
+        """
+        Detect if user input looks like a refinement/filter request.
+        
+        Returns:
+            Tuple of (is_refinement, detected_pattern)
+        """
+        lower = user_input.lower().strip()
+        
+        # Patterns that suggest removing/filtering
+        refinement_patterns = [
+            (r"^(?:actually\s+)?i\s+don'?t\s+like\s+(.+)$", "don't like"),
+            (r"^(?:actually\s+)?remove\s+(.+)$", "remove"),
+            (r"^(?:actually\s+)?delete\s+(.+)$", "delete"),
+            (r"^(?:actually\s+)?drop\s+(.+)$", "drop"),
+            (r"^(?:actually\s+)?without\s+(.+)$", "without"),
+            (r"^(?:actually\s+)?no\s+(.+)$", "no"),
+            (r"^(?:actually\s+)?not\s+(.+)$", "not"),
+            (r"^(?:actually\s+)?skip\s+(.+)$", "skip"),
+        ]
+        
+        for pattern, _ in refinement_patterns:
+            match = re.match(pattern, lower)
+            if match:
+                return True, match.group(1).strip()
+        
+        return False, ""
+    
+    def remove_tracks(self, pattern: str) -> int:
+        """
+        Remove tracks matching a pattern (artist or title).
+        
+        Args:
+            pattern: Pattern to match against artist or title
+            
+        Returns:
+            Number of tracks removed
+        """
+        if not self.all_tracks:
+            return 0
+        
+        pattern_lower = pattern.lower().strip()
+        original_count = len(self.all_tracks)
+        
+        # Filter out tracks where artist or title contains the pattern
+        self.all_tracks = [
+            t for t in self.all_tracks 
+            if pattern_lower not in t.artist.lower() and pattern_lower not in t.title.lower()
+        ]
+        
+        removed_count = original_count - len(self.all_tracks)
+        if logger:
+            logger.info(f"Removed {removed_count} tracks matching '{pattern}'")
+        
+        return removed_count
+    
     def run_interactive(self):
         """Run interactive chat loop."""
         print(f"\n{HR}")
@@ -500,12 +556,21 @@ class ChatSession:
         print(f"{CYAN}Tracks per query:{RESET} {self.limit}")
         print(f"\n{DIM}Type your music queries. Commands:{RESET}")
         print(f"  {YELLOW}/tracks{RESET}              - Show all discovered tracks")
+        print(f"  {YELLOW}/remove <pattern>{RESET}    - Remove tracks by artist/title")
         print(f"  {YELLOW}/new{RESET}                 - Start fresh (clear tracks & context)")
         print(f"  {YELLOW}/help{RESET}                - Show help")
         print(f"  {YELLOW}/quit{RESET}                - Exit chat (or Ctrl+C)")
         print(f"  {YELLOW}/publish <name>{RESET}      - Publish to Tidal (replaces playlist)")
         print(f"  {YELLOW}/publish <name> --append{RESET} - Add to existing playlist")
         print(f"\n{HR}\n")
+        
+        # Configure readline for better history handling
+        try:
+            readline.set_history_length(100)
+            # Clear any stale history from previous sessions
+            readline.clear_history()
+        except Exception:
+            pass  # readline not fully available
         
         while True:
             try:
@@ -523,6 +588,7 @@ class ChatSession:
                 if user_input.lower() == '/help':
                     print(f"\n{BOLD}Chat Commands:{RESET}")
                     print(f"  {YELLOW}/tracks{RESET}              - List all tracks discovered in this session")
+                    print(f"  {YELLOW}/remove <pattern>{RESET}    - Remove tracks by artist or title")
                     print(f"  {YELLOW}/new{RESET}                 - Clear all tracks and context (start fresh)")
                     print(f"  {YELLOW}/clear{RESET}               - Clear conversation context only")
                     print(f"  {YELLOW}/quit{RESET}                - Exit the chat session (or Ctrl+C)")
@@ -531,9 +597,9 @@ class ChatSession:
                     print(f"\n{BOLD}Tips:{RESET}")
                     print(f"  - Use natural language: \"more like the first one but jazzier\"")
                     print(f"  - Be specific: \"1970s funk with horn sections\"")
-                    print(f"  - Refine: \"less electronic, more acoustic\"")
+                    print(f"  - To filter: use /remove <artist> (e.g., /remove elif)")
                     print(f"\n{BOLD}Workflow:{RESET}")
-                    print(f"  Query → Refine → /publish \"My Playlist\" → /new → repeat\n")
+                    print(f"  Query → /remove unwanted → /publish \"My Playlist\" → /new → repeat\n")
                     continue
                 
                 if user_input.lower() == '/clear':
@@ -556,6 +622,27 @@ class ChatSession:
                             quality_indicator = "H" if "HI_RES" in track.quality else "L"
                             print(f"  {i:2}. {track.title[:40]:<40} - {track.artist[:20]:<20} [{quality_indicator}]")
                         print()
+                    continue
+                
+                if user_input.lower().startswith('/remove'):
+                    parts = user_input.split(maxsplit=1)
+                    if len(parts) < 2:
+                        print(f"{YELLOW}Usage: /remove <pattern>{RESET}")
+                        print(f"{DIM}Example: /remove elif  (removes tracks by artist 'elif'){RESET}")
+                        print(f"{DIM}Pattern matches against artist name or track title.{RESET}\n")
+                        continue
+                    
+                    pattern = parts[1].strip()
+                    if not self.all_tracks:
+                        print(f"{YELLOW}No tracks to filter.{RESET}\n")
+                        continue
+                    
+                    removed = self.remove_tracks(pattern)
+                    if removed > 0:
+                        print(f"{GREEN}✓{RESET} Removed {removed} track(s) matching \"{pattern}\"")
+                        print(f"{DIM}Remaining: {len(self.all_tracks)} tracks{RESET}\n")
+                    else:
+                        print(f"{YELLOW}No tracks matched \"{pattern}\"{RESET}\n")
                     continue
                 
                 if user_input.lower().startswith('/publish'):
@@ -608,6 +695,30 @@ class ChatSession:
                     print(f"{YELLOW}Unknown command: {user_input.split()[0]}{RESET}")
                     print(f"{DIM}Type /help for available commands.{RESET}\n")
                     continue
+                
+                # Detect refinement-style queries (e.g., "actually I don't like elif")
+                is_refinement, pattern = self._is_refinement_query(user_input)
+                if is_refinement and self.all_tracks:
+                    print(f"\n{CYAN}Detected filter request for \"{pattern}\".{RESET}")
+                    print(f"{DIM}Use /remove {pattern} to remove matching tracks.{RESET}")
+                    print(f"{DIM}Or continue with your query to find more music.{RESET}\n")
+                    
+                    # Ask user to confirm
+                    try:
+                        confirm = input(f"{GREEN}Remove tracks matching \"{pattern}\"? (y/n):{RESET} ").strip().lower()
+                        if confirm in ('y', 'yes'):
+                            removed = self.remove_tracks(pattern)
+                            if removed > 0:
+                                print(f"{GREEN}✓{RESET} Removed {removed} track(s)")
+                                print(f"{DIM}Remaining: {len(self.all_tracks)} tracks{RESET}\n")
+                            else:
+                                print(f"{YELLOW}No tracks matched \"{pattern}\"{RESET}\n")
+                            continue
+                        else:
+                            print(f"{DIM}Continuing as a new music query...{RESET}\n")
+                    except (KeyboardInterrupt, EOFError):
+                        print(f"\n{DIM}Cancelled.{RESET}\n")
+                        continue
                 
                 # Validate query
                 is_valid, error_msg = validate_query(user_input)
