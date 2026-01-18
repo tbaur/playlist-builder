@@ -22,6 +22,7 @@ import argparse
 import json
 import os
 import re
+import readline  # Enables up-arrow history and line editing in input()
 import shutil
 import subprocess
 import sys
