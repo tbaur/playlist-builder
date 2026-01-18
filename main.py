@@ -559,9 +559,8 @@ class ChatSession:
         print(f"  {YELLOW}/remove <pattern>{RESET}    - Remove tracks by artist/title")
         print(f"  {YELLOW}/new{RESET}                 - Start fresh (clear tracks & context)")
         print(f"  {YELLOW}/help{RESET}                - Show help")
+        print(f"  {YELLOW}/publish <name>{RESET}      - Publish to Tidal (replace, or use --append)")
         print(f"  {YELLOW}/quit{RESET}                - Exit chat (or Ctrl+C)")
-        print(f"  {YELLOW}/publish <name>{RESET}      - Publish to Tidal (replaces playlist)")
-        print(f"  {YELLOW}/publish <name> --append{RESET} - Add to existing playlist")
         print(f"\n{HR}\n")
         
         # Configure readline for better history handling
@@ -591,9 +590,8 @@ class ChatSession:
                     print(f"  {YELLOW}/remove <pattern>{RESET}    - Remove tracks by artist or title")
                     print(f"  {YELLOW}/new{RESET}                 - Clear all tracks and context (start fresh)")
                     print(f"  {YELLOW}/clear{RESET}               - Clear conversation context only")
-                    print(f"  {YELLOW}/quit{RESET}                - Exit the chat session (or Ctrl+C)")
-                    print(f"  {YELLOW}/publish <name>{RESET}      - Publish to Tidal (replaces playlist)")
-                    print(f"  {YELLOW}/publish <name> --append{RESET} - Add to existing playlist")
+                    print(f"  {YELLOW}/publish <name>{RESET}      - Publish to Tidal (replace, or use --append)")
+                    print(f"  {YELLOW}/quit{RESET}                - Exit chat (or Ctrl+C)")
                     print(f"\n{BOLD}Tips:{RESET}")
                     print(f"  - Use natural language: \"more like the first one but jazzier\"")
                     print(f"  - Be specific: \"1970s funk with horn sections\"")

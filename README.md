@@ -55,9 +55,8 @@ Chat commands:
 - `/remove <pattern>` — Remove tracks by artist or title (e.g., `/remove elif`)
 - `/new` — Clear tracks & context, start a new playlist
 - `/clear` — Clear conversation context only
+- `/publish <name>` — Publish to Tidal (replace, or use `--append`)
 - `/quit` — Exit chat (or Ctrl+C)
-- `/publish <name>` — Publish to Tidal (replaces playlist)
-- `/publish <name> --append` — Add to existing playlist
 
 **Workflow:** Query → `/remove` unwanted → `/publish "My Playlist"` → `/new` → repeat
 
