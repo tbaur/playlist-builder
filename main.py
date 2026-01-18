@@ -728,20 +728,19 @@ def ensure_venv():
             print(f"{RED}Error: Main script not found.{RESET}")
             sys.exit(1)
         try:
-            subprocess.run(
+            result = subprocess.run(
                 [python_path, script_path] + sys.argv[1:], 
-                check=True, 
                 timeout=3600,
                 shell=False  # Explicit: never use shell
             )
+            sys.exit(result.returncode)
+        except KeyboardInterrupt:
+            # Clean exit on Ctrl+C
             sys.exit(0)
         except subprocess.TimeoutExpired:
             logger.error("Script execution timed out")
             print(f"{RED}Error: Script execution timed out.{RESET}")
             sys.exit(1)
-        except subprocess.CalledProcessError as e:
-            logger.error(f"Failed to execute in venv: {e}")
-            sys.exit(e.returncode)
 
 def load_or_create_config() -> dict:
     """Load configuration or create new one."""
@@ -1185,4 +1184,8 @@ def main():
             handle_error_with_exit(e, f"Publish failed: {e}", logger, debug=args.debug)
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        # Clean exit on Ctrl+C
+        sys.exit(0)
