@@ -6,18 +6,26 @@
 
 - **Conversational Discovery** — New `chat` command for interactive, context-aware playlist building
   - Session maintains conversation history for iterative refinement
-  - Commands: `/save`, `/clear`, `/tracks`, `/quit`
   - Accumulates tracks across multiple queries in a session
+  - In-chat commands: `/tracks`, `/remove`, `/new`, `/clear`, `/publish`, `/quit`
+- **In-Chat Publishing** — Publish directly from chat with `/publish <name>`
+  - Replaces playlist by default, use `--append` to add to existing
+- **Smart Track Filtering** — `/remove <pattern>` filters tracks by artist or title
+- **Refinement Detection** — Phrases like "I don't like elif" prompt to remove instead of query
+- **Readline Support** — Up/down arrow history and line editing in chat
 
 ### Changed
 
-- Simplified to Tidal-only (removed experimental Spotify support)
+- Simplified to Tidal-only (removed Spotify support)
+- Renamed `search` command to `query` for clarity
+- Cache file renamed from `last_search.json` to `last_query.json`
 - Streamlined documentation and removed internal audit files
-- Updated help text and CLI structure
+- Graceful Ctrl+C handling (no stack traces)
 
 ### Removed
 
-- Spotify integration (experimental feature)
+- Spotify integration and all related code
+- `--run-code-tests` and `--coverage` CLI flags (use pytest directly)
 - Internal development docs (AUDIT_REPORT, CODE_EVALUATION, FIXES_APPLIED)
 
 ## [1.0.0] - 2026-01-02
