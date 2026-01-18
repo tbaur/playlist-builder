@@ -499,11 +499,11 @@ class ChatSession:
         print(f"\n{CYAN}Model:{RESET} {self.model}")
         print(f"{CYAN}Tracks per query:{RESET} {self.limit}")
         print(f"\n{DIM}Type your music queries. Commands:{RESET}")
-        print(f"  {YELLOW}/publish <name>{RESET}  - Publish tracks to Tidal playlist")
-        print(f"  {YELLOW}/new{RESET}             - Start fresh (clear tracks & context)")
         print(f"  {YELLOW}/tracks{RESET}          - Show all discovered tracks")
+        print(f"  {YELLOW}/new{RESET}             - Start fresh (clear tracks & context)")
         print(f"  {YELLOW}/help{RESET}            - Show help")
         print(f"  {YELLOW}/quit{RESET}            - Exit chat")
+        print(f"  {YELLOW}/publish <name>{RESET}  - Publish tracks to Tidal playlist")
         print(f"\n{HR}\n")
         
         while True:
@@ -521,18 +521,17 @@ class ChatSession:
                 
                 if user_input.lower() == '/help':
                     print(f"\n{BOLD}Chat Commands:{RESET}")
-                    print(f"  {YELLOW}/publish <name>{RESET}  - Publish tracks to Tidal as playlist <name>")
-                    print(f"  {YELLOW}/new{RESET}             - Clear all tracks and context (start fresh)")
                     print(f"  {YELLOW}/tracks{RESET}          - List all tracks discovered in this session")
+                    print(f"  {YELLOW}/new{RESET}             - Clear all tracks and context (start fresh)")
                     print(f"  {YELLOW}/clear{RESET}           - Clear conversation context only")
-                    print(f"  {YELLOW}/quit{RESET}            - Exit the chat session")
+                    print(f"  {YELLOW}/quit{RESET}            - Exit the chat session (or Ctrl+C)")
+                    print(f"  {YELLOW}/publish <name>{RESET}  - Publish tracks to Tidal as playlist <name>")
                     print(f"\n{BOLD}Tips:{RESET}")
                     print(f"  - Use natural language: \"more like the first one but jazzier\"")
                     print(f"  - Be specific: \"1970s funk with horn sections\"")
                     print(f"  - Refine: \"less electronic, more acoustic\"")
                     print(f"\n{BOLD}Workflow:{RESET}")
-                    print(f"  1. Query for tracks → 2. Refine → 3. /publish \"My Playlist\"")
-                    print(f"  4. /new → Start another playlist\n")
+                    print(f"  Query → Refine → /publish \"My Playlist\" → /new → repeat\n")
                     continue
                 
                 if user_input.lower() == '/clear':
