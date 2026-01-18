@@ -77,14 +77,14 @@ def print_help():
 {BOLD}playlist-builder{RESET} - AI-powered music discovery and playlist curation
 
 {BOLD}USAGE{RESET}
-    playlist-builder {BOLD}search{RESET} <query> [--model <model>] [--limit <n>] [--debug]
+    playlist-builder {BOLD}query{RESET} <query> [--model <model>] [--limit <n>] [--debug]
     playlist-builder {BOLD}publish{RESET} <tidal|spotify> --name <name> [--replace]
     playlist-builder {BOLD}keychain{RESET} <set|get|delete|list> [key] [value]
     playlist-builder {BOLD}reset{RESET} | {BOLD}rebuild{RESET}
     playlist-builder {BOLD}--run-code-tests{RESET} [--coverage] [--verbose]
 
 {BOLD}COMMANDS{RESET}
-    {CYAN}search{RESET} <query>     Discover tracks using AI (Gemini)
+    {CYAN}query{RESET} <query>     Discover tracks using AI (Gemini)
     {CYAN}publish{RESET} tidal      Sync results to Tidal playlist
     {CYAN}publish{RESET} spotify    Sync results to Spotify playlist {YELLOW}(EXPERIMENTAL){RESET}
     {CYAN}keychain{RESET}            Manage secrets (macOS Keychain)
@@ -100,8 +100,8 @@ def print_help():
     --verbose, -v            Verbose output
 
 {BOLD}EXAMPLES{RESET}
-    playlist-builder search "Jazz classics for late night"
-    playlist-builder search "Electronic" --model 3-pro --limit 20
+    playlist-builder query "Jazz classics for late night"
+    playlist-builder query "Electronic" --model 3-pro --limit 20
     playlist-builder publish tidal --name "My Playlist"
     playlist-builder publish spotify --name "My Playlist" {DIM}(experimental){RESET}
     playlist-builder keychain set GEMINI_API_KEY
@@ -634,16 +634,16 @@ def main():
     
     subparsers = parser.add_subparsers(dest="cmd", help="Command")
     
-    search_parser = subparsers.add_parser("search", help="Search for tracks")
-    search_parser.add_argument("query", help="Search query")
-    search_parser.add_argument("-d", "--debug", action="store_true", help="Enable debug logging")
-    search_parser.add_argument(
+    query_parser = subparsers.add_parser("query", help="Query AI for tracks")
+    query_parser.add_argument("query", help="Query to ask the AI")
+    query_parser.add_argument("-d", "--debug", action="store_true", help="Enable debug logging")
+    query_parser.add_argument(
         "-l", "--limit",
         type=int,
         default=DEFAULT_LIMIT,
         help="Maximum tracks to return (1-100)"
     )
-    search_parser.add_argument(
+    query_parser.add_argument(
         "-m", "--model",
         type=str,
         default=GEMINI_MODEL,
@@ -921,7 +921,7 @@ def main():
     engine = TidalProvider(config, CONFIG_FILE, args.debug)
     
     # Execute commands
-    if args.cmd == "search":
+    if args.cmd == "query":
         # Validate query input
         is_valid, error_msg = validate_query(args.query)
         if not is_valid:
@@ -929,7 +929,7 @@ def main():
             sys.exit(1)
         
         metrics = MetricsCollector()
-        op_metrics = metrics.start_operation("Search & Discovery")
+        op_metrics = metrics.start_operation("Query & Discovery")
         
         print(f"\n{HR}\n{BOLD}AI DISCOVERY:{RESET} {CYAN}{args.query}{RESET}")
         print(f"{BOLD}MODEL:{RESET} {CYAN}{model}{RESET}\n{HR}")
@@ -946,7 +946,7 @@ def main():
                     with open(CACHE_FILE, 'w') as f:
                         json.dump([asdict(t) for t in tracks], f, indent=2)
                     logger.info(f"Cached {len(tracks)} tracks")
-                    print(f"\n{GREEN}{BOLD}✔ AI Search Cached.{RESET}")
+                    print(f"\n{GREEN}{BOLD}✔ AI Query Cached.{RESET}")
                 except Exception as e:
                     handle_warning("Failed to cache results", logger, str(e))
             
@@ -955,14 +955,14 @@ def main():
             
         except Exception as e:
             metrics.end_operation(success=False, error=str(e))
-            logger.error(f"Search failed: {e}", exc_info=args.debug)
-            print(f"{RED}Error: Search failed: {e}{RESET}")
+            logger.error(f"Query failed: {e}", exc_info=args.debug)
+            print(f"{RED}Error: Query failed: {e}{RESET}")
             metrics.print_summary()
             sys.exit(1)
             
     elif args.cmd == "publish":
         if not os.path.exists(CACHE_FILE):
-            print(f"{RED}Error: Run 'search' first.{RESET}")
+            print(f"{RED}Error: Run 'query' first.{RESET}")
             sys.exit(1)
         
         # Validate playlist name

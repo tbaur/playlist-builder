@@ -111,11 +111,11 @@ target_playlist.add(track_ids)  # List of Tidal track IDs
 
 ## Usage
 
-### Basic Search and Publish
+### Basic Query and Publish
 
 ```bash
-# Search for tracks (caches results)
-playlist-builder search "Jazz classics from the 1960s"
+# Query for tracks (caches results)
+playlist-builder query "Jazz classics from the 1960s"
 
 # Publish to Tidal
 playlist-builder publish tidal --name "Jazz Classics"
@@ -127,7 +127,7 @@ playlist-builder publish tidal --name "Jazz Classics" --replace
 ### Debug Mode
 
 ```bash
-playlist-builder search "query" --debug
+playlist-builder query "query" --debug
 ```
 
 Enables verbose logging for troubleshooting authentication and track resolution.

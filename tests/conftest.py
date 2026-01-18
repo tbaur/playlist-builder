@@ -128,7 +128,7 @@ def isolate_config_directory(tmp_path, monkeypatch):
     test_base_dir = str(test_config_dir)
     test_venv_dir = str(test_config_dir / ".venv")
     test_config_file = str(test_config_dir / "config.json")
-    test_cache_file = str(test_config_dir / "last_search.json")
+    test_cache_file = str(test_config_dir / "last_query.json")
     test_log_file = str(test_config_dir / "playlist-builder.log")
     
     # Patch constants module

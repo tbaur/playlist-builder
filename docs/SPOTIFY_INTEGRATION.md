@@ -176,11 +176,11 @@ for i in range(0, len(uris), 100):
 
 ## Usage
 
-### Basic Search and Publish
+### Basic Query and Publish
 
 ```bash
-# Search for tracks (caches results)
-playlist-builder search "Electronic chill vibes"
+# Query for tracks (caches results)
+playlist-builder query "Electronic chill vibes"
 
 # Publish to Spotify (experimental)
 playlist-builder publish spotify --name "Chill Vibes"
@@ -192,7 +192,7 @@ playlist-builder publish spotify --name "Chill Vibes" --replace
 ### Debug Mode
 
 ```bash
-playlist-builder search "query" --debug
+playlist-builder query "query" --debug
 ```
 
 ## Error Handling

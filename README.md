@@ -97,11 +97,11 @@ After installation, you'll need to configure:
 
 ## Usage
 
-### Search for Tracks
+### Query for Tracks
 
 ```bash
-playlist-builder search "Top audiophile recordings from April 1977"
-playlist-builder search "Jazz classics" --model 3-pro --limit 20
+playlist-builder query "Top audiophile recordings from April 1977"
+playlist-builder query "Jazz classics" --model 3-pro --limit 20
 ```
 
 ### Publish to Tidal

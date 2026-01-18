@@ -191,7 +191,7 @@ Protected system paths include:
 - No sensitive data transmitted in URLs
 
 ### Local Storage
-- Cache files (`last_search.json`) contain track metadata only, no secrets
+- Cache files (`last_query.json`) contain track metadata only, no secrets
 - Log files (`playlist-builder.log`) do not contain sensitive information
 - All files stored in `~/.config/playlist-builder` with secure permissions
 

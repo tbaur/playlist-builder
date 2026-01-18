@@ -45,8 +45,8 @@ class TestEndToEndWorkflow:
     
     @patch('google.genai.Client')
     @patch('tidal_engine.tidalapi.Session')
-    def test_search_and_publish_workflow(self, mock_session_class, mock_client_class, sample_config, temp_dir):
-        """Test complete search and publish workflow."""
+    def test_query_and_publish_workflow(self, mock_session_class, mock_client_class, sample_config, temp_dir):
+        """Test complete query and publish workflow."""
         # Setup mocks
         mock_client = MagicMock()
         mock_response = MagicMock()
@@ -84,7 +84,7 @@ class TestEndToEndWorkflow:
         with open(config_path, 'w') as f:
             json.dump(sample_config, f)
         
-        # Test search
+        # Test query
         curator = MusicCurator(sample_config)
         curator.client = mock_client
         

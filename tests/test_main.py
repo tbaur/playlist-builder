@@ -347,8 +347,8 @@ class TestPrintHelp:
                 in_commands = True
                 continue
             if in_commands:
-                # Look for lines containing search or publish (may have ANSI codes)
-                if 'search' in line or 'publish' in line or 'keychain' in line:
+                # Look for lines containing query or publish (may have ANSI codes)
+                if 'query' in line or 'publish' in line or 'keychain' in line:
                     command_lines.append(line)
                 # Stop when we hit the next section
                 if 'OPTIONS' in line:
@@ -447,11 +447,11 @@ class TestCLIArgumentParsing:
         
         subparsers = parser.add_subparsers(dest="cmd")
         
-        search_parser = subparsers.add_parser("search")
-        search_parser.add_argument("query")
-        search_parser.add_argument("-d", "--debug", action="store_true", default=False)
-        search_parser.add_argument("-l", "--limit", type=int, default=DEFAULT_LIMIT)
-        search_parser.add_argument("-m", "--model", type=str, default=GEMINI_MODEL)
+        query_parser = subparsers.add_parser("query")
+        query_parser.add_argument("query")
+        query_parser.add_argument("-d", "--debug", action="store_true", default=False)
+        query_parser.add_argument("-l", "--limit", type=int, default=DEFAULT_LIMIT)
+        query_parser.add_argument("-m", "--model", type=str, default=GEMINI_MODEL)
         
         publish_parser = subparsers.add_parser("publish")
         publish_parser.add_argument("provider", choices=["tidal", "spotify"])
@@ -461,45 +461,45 @@ class TestCLIArgumentParsing:
         
         return parser
     
-    def test_search_flags_after_subcommand(self):
-        """Verify --model, --limit, --debug work after 'search' subcommand."""
+    def test_query_flags_after_subcommand(self):
+        """Verify --model, --limit, --debug work after 'query' subcommand."""
         parser = self._create_parser()
-        args = parser.parse_args(['search', 'Jazz classics', '--model', '3-pro', '--limit', '20', '--debug'])
+        args = parser.parse_args(['query', 'Jazz classics', '--model', '3-pro', '--limit', '20', '--debug'])
         
-        assert args.cmd == 'search'
+        assert args.cmd == 'query'
         assert args.query == 'Jazz classics'
         assert args.model == '3-pro'
         assert args.limit == 20
         assert args.debug is True
     
-    def test_search_flags_before_subcommand(self):
-        """Verify command parses when flags are before 'search' subcommand.
+    def test_query_flags_before_subcommand(self):
+        """Verify command parses when flags are before 'query' subcommand.
         
         Note: When flags are before subcommand, the parent parser consumes them,
         but the subparser then applies its own defaults. For reliable behavior,
         flags should be placed after the subcommand.
         """
         parser = self._create_parser()
-        args = parser.parse_args(['--debug', 'search', 'Jazz classics'])
+        args = parser.parse_args(['--debug', 'query', 'Jazz classics'])
         
-        assert args.cmd == 'search'
+        assert args.cmd == 'query'
         assert args.query == 'Jazz classics'
         # Parent's --debug is consumed but subparser has its own default
         # This documents the argparse behavior - flags after subcommand is preferred
     
-    def test_search_flags_mixed_positions(self):
+    def test_query_flags_mixed_positions(self):
         """Verify flags work in mixed positions."""
         parser = self._create_parser()
-        args = parser.parse_args(['search', 'Jazz classics', '--limit', '15', '--debug'])
+        args = parser.parse_args(['query', 'Jazz classics', '--limit', '15', '--debug'])
         
-        assert args.cmd == 'search'
+        assert args.cmd == 'query'
         assert args.limit == 15
         assert args.debug is True
     
-    def test_search_short_flags(self):
+    def test_query_short_flags(self):
         """Verify short flags (-m, -l, -d) work after subcommand."""
         parser = self._create_parser()
-        args = parser.parse_args(['search', 'Jazz classics', '-m', '3-flash', '-l', '5', '-d'])
+        args = parser.parse_args(['query', 'Jazz classics', '-m', '3-flash', '-l', '5', '-d'])
         
         assert args.model == '3-flash'
         assert args.limit == 5
@@ -526,14 +526,14 @@ class TestCLIArgumentParsing:
         assert args.replace is True
         assert args.debug is True
     
-    def test_search_defaults_without_flags(self):
+    def test_query_defaults_without_flags(self):
         """Verify defaults are used when flags not specified."""
         from constants import DEFAULT_LIMIT, GEMINI_MODEL
         
         parser = self._create_parser()
-        args = parser.parse_args(['search', 'Rock music'])
+        args = parser.parse_args(['query', 'Rock music'])
         
-        assert args.cmd == 'search'
+        assert args.cmd == 'query'
         assert args.query == 'Rock music'
         assert args.limit == DEFAULT_LIMIT
         assert args.model == GEMINI_MODEL

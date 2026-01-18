@@ -208,9 +208,9 @@ PYEOF
         echo -e "${CYAN}Setting up Tidal authentication...${RESET}"
         echo -e "${DIM}This will open your browser for OAuth login...${RESET}"
         echo -e "${DIM}Note: Authentication will complete after venv is created.${RESET}"
-        echo -e "${DIM}You can also authenticate later by running: playlist-builder search \"test\"${RESET}"
+        echo -e "${DIM}You can also authenticate later by running: playlist-builder query \"test\"${RESET}"
     else
-        echo -e "${DIM}You can authenticate later by running: playlist-builder search \"test\"${RESET}"
+        echo -e "${DIM}You can authenticate later by running: playlist-builder query \"test\"${RESET}"
     fi
     
     # Ensure permissions are secure even if file already existed
@@ -271,7 +271,7 @@ fi
 echo -e "\n${GREEN}${BOLD}✔ INSTALLATION COMPLETE${RESET}"
 echo -e "${HR}"
 echo -e "${BOLD}NEXT STEPS:${RESET}"
-echo -e "1. Run ${CYAN}playlist-builder search \"query\"${RESET} to begin."
+echo -e "1. Run ${CYAN}playlist-builder query \"query\"${RESET} to begin."
 
 # Check if API key is already configured (works on re-runs too)
 API_KEY_SET=false
@@ -302,7 +302,7 @@ if [ "$API_KEY_SET" = false ]; then
     fi
 fi
 
-echo -e "3. Tidal OAuth will trigger automatically during the first search."
+echo -e "3. Tidal OAuth will trigger automatically during the first query."
 echo -e "4. ${DIM}(Optional)${RESET} For Spotify support: ${CYAN}playlist-builder keychain set SPOTIFY_CLIENT_ID${RESET}"
 echo -e "   ${DIM}Get credentials at: https://developer.spotify.com/dashboard${RESET}"
 echo -e "\n${DIM}System config stored in: $INSTALL_DIR${RESET}\n"

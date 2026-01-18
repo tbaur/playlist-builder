@@ -24,7 +24,7 @@ from enum import Enum
 BASE_DIR = os.path.expanduser("~/.config/playlist-builder")
 VENV_DIR = os.path.join(BASE_DIR, ".venv")
 CONFIG_FILE = os.path.join(BASE_DIR, "config.json")
-CACHE_FILE = os.path.join(BASE_DIR, "last_search.json")
+CACHE_FILE = os.path.join(BASE_DIR, "last_query.json")
 LOG_FILE = os.path.join(BASE_DIR, "playlist-builder.log")
 
 # --- ANSI COLOR CODES ---

@@ -47,7 +47,7 @@ class TestPaths:
     
     def test_cache_file_path(self):
         """Test CACHE_FILE path."""
-        assert CACHE_FILE == os.path.join(BASE_DIR, "last_search.json")
+        assert CACHE_FILE == os.path.join(BASE_DIR, "last_query.json")
     
     def test_log_file_path(self):
         """Test LOG_FILE path."""
