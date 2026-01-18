@@ -620,10 +620,7 @@ class ChatSession:
                         logger.error(f"Chat query failed: {e}", exc_info=self.debug)
                     print(f"{RED}Error: {e}{RESET}\n")
                     
-            except KeyboardInterrupt:
-                print(f"\n\n{DIM}Interrupted. Use /quit to exit.{RESET}\n")
-                continue
-            except EOFError:
+            except (KeyboardInterrupt, EOFError):
                 print(f"\n{DIM}Ending chat session...{RESET}")
                 break
         
