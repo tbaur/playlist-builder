@@ -79,16 +79,6 @@ def mock_keychain_operations():
     def mock_migrate_secrets(config):
         return False
     
-    def mock_store_spotify_session(session_data):
-        test_keychain["spotify:spotify_session"] = json.dumps(session_data)
-        return True
-    
-    def mock_get_spotify_session():
-        data = test_keychain.get("spotify:spotify_session")
-        if data:
-            return json.loads(data)
-        return None
-    
     with patch.multiple(
         'keychain_utils',
         store_secret=mock_store_secret,
@@ -96,8 +86,6 @@ def mock_keychain_operations():
         delete_secret=mock_delete_secret,
         store_tidal_session=mock_store_tidal_session,
         get_tidal_session=mock_get_tidal_session,
-        store_spotify_session=mock_store_spotify_session,
-        get_spotify_session=mock_get_spotify_session,
         migrate_secrets_from_config=mock_migrate_secrets,
     ):
         # Also patch in main module if it imports these directly
@@ -271,52 +259,3 @@ def sample_track_data():
 def sample_tracks_list(sample_track_data):
     """List of sample tracks."""
     return [sample_track_data.copy()]
-
-
-@pytest.fixture
-def mock_spotify_client():
-    """Mock Spotify API client."""
-    mock_client = MagicMock()
-    
-    # Mock search results
-    mock_track = {
-        'id': '12345',
-        'name': 'Test Track',
-        'uri': 'spotify:track:12345',
-        'artists': [{'name': 'Test Artist'}],
-        'album': {
-            'name': 'Test Album',
-            'release_date': '2020-01-01'
-        }
-    }
-    
-    mock_client.search.return_value = {
-        'tracks': {'items': [mock_track]}
-    }
-    
-    # Mock user info
-    mock_client.current_user.return_value = {'id': 'test_user_id'}
-    
-    # Mock playlist operations
-    mock_client.current_user_playlists.return_value = {'items': []}
-    mock_client.user_playlist_create.return_value = {
-        'id': 'new_playlist_id',
-        'name': 'Test Playlist'
-    }
-    mock_client.playlist_items.return_value = {'items': []}
-    
-    return mock_client
-
-
-@pytest.fixture
-def sample_spotify_tracks():
-    """Sample tracks with spotify_id for testing."""
-    return [
-        {
-            "title": "Test Track",
-            "artist": "Test Artist",
-            "album": "Test Album",
-            "spotify_id": "12345",
-            "score": 0.95
-        }
-    ]

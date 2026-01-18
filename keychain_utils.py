@@ -197,45 +197,6 @@ def get_tidal_session() -> Optional[Dict[str, Any]]:
         logger.error(f"Failed to retrieve Tidal session: {e}")
         return None
 
-
-def store_spotify_session(session_data: Dict[str, Any]) -> bool:
-    """
-    Store Spotify session data in Keychain (EXPERIMENTAL).
-    
-    Args:
-        session_data: Dictionary containing access_token, refresh_token, expires_at, etc.
-        
-    Returns:
-        True if successful, False otherwise
-    """
-    try:
-        # Store as JSON string
-        json_data = json.dumps(session_data)
-        return store_secret("spotify_session", json_data, account="spotify")
-    except Exception as e:
-        logger.error(f"Failed to store Spotify session: {e}")
-        return False
-
-
-def get_spotify_session() -> Optional[Dict[str, Any]]:
-    """
-    Retrieve Spotify session data from Keychain (EXPERIMENTAL).
-    
-    Returns:
-        Dictionary containing session data, or None if not found
-    """
-    try:
-        json_data = get_secret("spotify_session", account="spotify")
-        if json_data:
-            return json.loads(json_data)
-        return None
-    except json.JSONDecodeError as e:
-        logger.error(f"Failed to parse Spotify session data: {e}")
-        return None
-    except Exception as e:
-        logger.error(f"Failed to retrieve Spotify session: {e}")
-        return None
-
 def migrate_secrets_from_config(config: Dict[str, Any]) -> bool:
     """
     Migrate secrets from config.json to Keychain.
