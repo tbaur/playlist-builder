@@ -41,7 +41,7 @@ echo -e "${CYAN}Creating application home at ${INSTALL_DIR}...${RESET}"
 mkdir -p "$INSTALL_DIR"
 
 # 3. Deploy Source Code
-REQUIRED_FILES=("main.py" "tidal_engine.py" "spotify_engine.py" "constants.py" "utils.py" "spinner.py" "metrics.py" "keychain_utils.py")
+REQUIRED_FILES=("main.py" "tidal_engine.py" "constants.py" "utils.py" "spinner.py" "metrics.py" "keychain_utils.py")
 MISSING_FILES=()
 
 for file in "${REQUIRED_FILES[@]}"; do
@@ -238,7 +238,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-"$INSTALL_DIR/.venv/bin/pip" install google-genai tidalapi spotipy --quiet
+"$INSTALL_DIR/.venv/bin/pip" install google-genai tidalapi --quiet
 if [ $? -ne 0 ]; then
     echo -e "${RED}Error: Failed to install runtime dependencies${RESET}"
     exit 1
@@ -271,7 +271,8 @@ fi
 echo -e "\n${GREEN}${BOLD}✔ INSTALLATION COMPLETE${RESET}"
 echo -e "${HR}"
 echo -e "${BOLD}NEXT STEPS:${RESET}"
-echo -e "1. Run ${CYAN}playlist-builder query \"query\"${RESET} to begin."
+echo -e "1. Run ${CYAN}playlist-builder chat${RESET} for interactive discovery, or"
+echo -e "   ${CYAN}playlist-builder query \"your query\"${RESET} for one-shot search."
 
 # Check if API key is already configured (works on re-runs too)
 API_KEY_SET=false
@@ -303,6 +304,4 @@ if [ "$API_KEY_SET" = false ]; then
 fi
 
 echo -e "3. Tidal OAuth will trigger automatically during the first query."
-echo -e "4. ${DIM}(Optional)${RESET} For Spotify support: ${CYAN}playlist-builder keychain set SPOTIFY_CLIENT_ID${RESET}"
-echo -e "   ${DIM}Get credentials at: https://developer.spotify.com/dashboard${RESET}"
 echo -e "\n${DIM}System config stored in: $INSTALL_DIR${RESET}\n"
