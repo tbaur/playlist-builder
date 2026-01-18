@@ -51,10 +51,13 @@ playlist-builder chat --model 3-pro --limit 20
 ```
 
 Chat commands:
-- `/save` — Save discovered tracks for publishing
-- `/clear` — Clear conversation context
+- `/publish <name>` — Publish tracks directly to Tidal
+- `/new` — Clear tracks & context, start a new playlist
 - `/tracks` — Show all discovered tracks
+- `/clear` — Clear conversation context only
 - `/quit` — Exit chat
+
+**Workflow:** Query → Refine → `/publish "My Playlist"` → `/new` → repeat
 
 ### Single Query
 

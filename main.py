@@ -498,11 +498,11 @@ class ChatSession:
         print(f"\n{CYAN}Model:{RESET} {self.model}")
         print(f"{CYAN}Tracks per query:{RESET} {self.limit}")
         print(f"\n{DIM}Type your music queries. Commands:{RESET}")
-        print(f"  {YELLOW}/save{RESET}    - Save discovered tracks for publishing")
-        print(f"  {YELLOW}/clear{RESET}   - Clear conversation context")
-        print(f"  {YELLOW}/tracks{RESET}  - Show all discovered tracks")
-        print(f"  {YELLOW}/help{RESET}    - Show help")
-        print(f"  {YELLOW}/quit{RESET}    - Exit chat")
+        print(f"  {YELLOW}/publish <name>{RESET}  - Publish tracks to Tidal playlist")
+        print(f"  {YELLOW}/new{RESET}             - Start fresh (clear tracks & context)")
+        print(f"  {YELLOW}/tracks{RESET}          - Show all discovered tracks")
+        print(f"  {YELLOW}/help{RESET}            - Show help")
+        print(f"  {YELLOW}/quit{RESET}            - Exit chat")
         print(f"\n{HR}\n")
         
         while True:
@@ -520,19 +520,29 @@ class ChatSession:
                 
                 if user_input.lower() == '/help':
                     print(f"\n{BOLD}Chat Commands:{RESET}")
-                    print(f"  {YELLOW}/save{RESET}    - Save all discovered tracks to cache for publishing")
-                    print(f"  {YELLOW}/clear{RESET}   - Clear conversation context (start fresh)")
-                    print(f"  {YELLOW}/tracks{RESET}  - List all tracks discovered in this session")
-                    print(f"  {YELLOW}/quit{RESET}    - Exit the chat session")
+                    print(f"  {YELLOW}/publish <name>{RESET}  - Publish tracks to Tidal as playlist <name>")
+                    print(f"  {YELLOW}/new{RESET}             - Clear all tracks and context (start fresh)")
+                    print(f"  {YELLOW}/tracks{RESET}          - List all tracks discovered in this session")
+                    print(f"  {YELLOW}/clear{RESET}           - Clear conversation context only")
+                    print(f"  {YELLOW}/quit{RESET}            - Exit the chat session")
                     print(f"\n{BOLD}Tips:{RESET}")
                     print(f"  - Use natural language: \"more like the first one but jazzier\"")
                     print(f"  - Be specific: \"1970s funk with horn sections\"")
-                    print(f"  - Refine: \"less electronic, more acoustic\"\n")
+                    print(f"  - Refine: \"less electronic, more acoustic\"")
+                    print(f"\n{BOLD}Workflow:{RESET}")
+                    print(f"  1. Query for tracks → 2. Refine → 3. /publish \"My Playlist\"")
+                    print(f"  4. /new → Start another playlist\n")
                     continue
                 
                 if user_input.lower() == '/clear':
                     self.clear_history()
                     print(f"{GREEN}✓{RESET} Conversation context cleared.\n")
+                    continue
+                
+                if user_input.lower() == '/new':
+                    self.all_tracks = []
+                    self.conversation_history = []
+                    print(f"{GREEN}✓{RESET} Cleared all tracks and context. Ready for a new playlist!\n")
                     continue
                 
                 if user_input.lower() == '/tracks':
@@ -546,18 +556,39 @@ class ChatSession:
                         print()
                     continue
                 
-                if user_input.lower() == '/save':
+                if user_input.lower().startswith('/publish'):
+                    parts = user_input.split(maxsplit=1)
+                    if len(parts) < 2:
+                        print(f"{YELLOW}Usage: /publish <playlist name>{RESET}")
+                        print(f"{DIM}Example: /publish \"Late Night Jazz\"{RESET}\n")
+                        continue
+                    
+                    playlist_name = parts[1].strip().strip('"\'')
+                    if not playlist_name:
+                        print(f"{RED}Error: Playlist name required.{RESET}\n")
+                        continue
+                    
                     if not self.all_tracks:
-                        print(f"{YELLOW}No tracks to save. Discover some music first!{RESET}\n")
-                    else:
-                        try:
-                            os.makedirs(os.path.dirname(CACHE_FILE), exist_ok=True)
-                            with open(CACHE_FILE, 'w') as f:
-                                json.dump([asdict(t) for t in self.all_tracks], f, indent=2)
-                            print(f"{GREEN}✓{RESET} Saved {len(self.all_tracks)} tracks to cache.")
-                            print(f"{DIM}Use 'playlist-builder publish tidal --name \"Playlist Name\"' to sync.{RESET}\n")
-                        except Exception as e:
-                            print(f"{RED}Error saving tracks: {e}{RESET}\n")
+                        print(f"{YELLOW}No tracks to publish. Discover some music first!{RESET}\n")
+                        continue
+                    
+                    # Publish directly to Tidal
+                    print(f"\n{CYAN}Publishing {len(self.all_tracks)} tracks to Tidal...{RESET}")
+                    try:
+                        publish_metrics = MetricsCollector()
+                        publish_metrics.start_operation("Publish to Tidal")
+                        
+                        tracks_data = [asdict(t) for t in self.all_tracks]
+                        self.engine.publish(playlist_name, tracks_data, replace=False, metrics=publish_metrics)
+                        
+                        publish_metrics.end_operation(success=True)
+                        print(f"{GREEN}✓{RESET} Published to Tidal: \"{playlist_name}\"")
+                        print(f"{DIM}Tracks in session preserved. Use /new to start fresh.{RESET}\n")
+                        
+                    except Exception as e:
+                        if logger:
+                            logger.error(f"Publish failed: {e}", exc_info=self.debug)
+                        print(f"{RED}Error publishing: {e}{RESET}\n")
                     continue
                 
                 # Validate query
@@ -596,22 +627,12 @@ class ChatSession:
                 print(f"\n{DIM}Ending chat session...{RESET}")
                 break
         
-        # Save tracks on exit if any were found
+        # Show session summary on exit
         if self.all_tracks:
             print(f"\n{BOLD}Session Summary:{RESET}")
             print(f"  Discovered: {len(self.all_tracks)} tracks")
             print(f"  Queries: {len([h for h in self.conversation_history if h['role'] == 'user'])}")
-            
-            save_prompt = input(f"\n{CYAN}Save tracks before exiting? [Y/n]:{RESET} ").strip().lower()
-            if save_prompt != 'n':
-                try:
-                    os.makedirs(os.path.dirname(CACHE_FILE), exist_ok=True)
-                    with open(CACHE_FILE, 'w') as f:
-                        json.dump([asdict(t) for t in self.all_tracks], f, indent=2)
-                    print(f"{GREEN}✓{RESET} Saved {len(self.all_tracks)} tracks.")
-                    print(f"{DIM}Use 'playlist-builder publish tidal --name \"Playlist Name\"' to sync.{RESET}")
-                except Exception as e:
-                    print(f"{RED}Error saving: {e}{RESET}")
+            print(f"\n{DIM}Tip: Use /publish before /quit to save your playlist.{RESET}")
 
 
 def ensure_venv():
