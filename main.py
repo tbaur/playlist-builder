@@ -39,7 +39,7 @@ if _script_dir not in sys.path:
 from constants import (
     BASE_DIR, VENV_DIR, CONFIG_FILE, CACHE_FILE,
     BOLD, RED, GREEN, YELLOW, CYAN, BLUE, MAGENTA, RESET, DIM, HR,
-    DEFAULT_LIMIT, MAX_WORKERS, HIGH_CONFIDENCE_SCORE,
+    DEFAULT_LIMIT, CHAT_DEFAULT_LIMIT, MAX_WORKERS, HIGH_CONFIDENCE_SCORE,
     GEMINI_MODEL, AVAILABLE_MODELS, GEMINI_THINKING_LEVEL,
     TrackResolutionStatus, API_TIMEOUT_SECONDS,
     MAX_CONFIG_SIZE_BYTES, MAX_JSON_SIZE_BYTES
@@ -77,29 +77,30 @@ def print_help():
 {BOLD}playlist-builder{RESET} - AI-powered music discovery and playlist curation
 
 {BOLD}USAGE{RESET}
+    playlist-builder {BOLD}chat{RESET} [--model <model>] [--limit <n>] [--debug]
     playlist-builder {BOLD}query{RESET} <query> [--model <model>] [--limit <n>] [--debug]
-    playlist-builder {BOLD}publish{RESET} <tidal|spotify> --name <name> [--replace]
+    playlist-builder {BOLD}publish{RESET} tidal --name <name> [--replace]
     playlist-builder {BOLD}keychain{RESET} <set|get|delete|list> [key] [value]
     playlist-builder {BOLD}reset{RESET} | {BOLD}rebuild{RESET}
 
 {BOLD}COMMANDS{RESET}
-    {CYAN}query{RESET} <query>     Discover tracks using AI (Gemini)
+    {CYAN}chat{RESET}               Interactive conversational discovery session
+    {CYAN}query{RESET} <query>      One-shot track discovery using AI (Gemini)
     {CYAN}publish{RESET} tidal      Sync results to Tidal playlist
-    {CYAN}publish{RESET} spotify    Sync results to Spotify playlist {YELLOW}(EXPERIMENTAL){RESET}
     {CYAN}keychain{RESET}            Manage secrets (macOS Keychain)
     {CYAN}reset{RESET}               Clear cache and credentials
     {CYAN}rebuild{RESET}             Reinstall virtual environment
 
 {BOLD}OPTIONS{RESET}
     --model <model>          Gemini model (default: 3-flash)
-    --limit <n>              Max tracks (default: 10, range: 1-100)
+    --limit <n>              Max tracks per query (default: 10, range: 1-100)
     --debug                  Enable debug logging
 
 {BOLD}EXAMPLES{RESET}
+    playlist-builder chat
+    playlist-builder chat --model 3-pro --limit 20
     playlist-builder query "Jazz classics for late night"
-    playlist-builder query "Electronic" --model 3-pro --limit 20
     playlist-builder publish tidal --name "My Playlist"
-    playlist-builder publish spotify --name "My Playlist" {DIM}(experimental){RESET}
     playlist-builder keychain set GEMINI_API_KEY
 """)
 
@@ -393,6 +394,226 @@ class MusicCurator:
             logger.info(f"Curated {len(validated)} tracks")
         return validated
 
+
+class ChatSession:
+    """Interactive conversational music discovery session."""
+    
+    def __init__(self, config: dict, engine: 'TidalProvider', model: str = GEMINI_MODEL, 
+                 limit: int = CHAT_DEFAULT_LIMIT, debug: bool = False):
+        """
+        Initialize chat session.
+        
+        Args:
+            config: Configuration dictionary
+            engine: TidalProvider instance for track resolution
+            model: Gemini model identifier
+            limit: Default track limit per query
+            debug: Enable debug logging
+        """
+        self.config = config
+        self.engine = engine
+        self.model = model
+        self.limit = limit
+        self.debug = debug
+        self.conversation_history: List[dict] = []
+        self.all_tracks: List[Track] = []
+        self.curator = MusicCurator(config, model=model, debug=debug)
+        
+        if logger:
+            logger.info(f"Started chat session with model: {model}, limit: {limit}")
+    
+    def _build_context_prompt(self, user_message: str) -> str:
+        """Build prompt with conversation context."""
+        context_parts = []
+        
+        if self.conversation_history:
+            context_parts.append("Previous conversation context:")
+            for turn in self.conversation_history[-5:]:  # Last 5 turns for context
+                if turn['role'] == 'user':
+                    context_parts.append(f"User asked: {turn['content']}")
+                elif turn['role'] == 'assistant' and 'tracks' in turn:
+                    track_summary = ", ".join([f"{t['title']} by {t['artist']}" for t in turn['tracks'][:3]])
+                    context_parts.append(f"Found tracks including: {track_summary}...")
+            context_parts.append("")
+        
+        context_parts.append(f"Current request: {user_message}")
+        
+        return "\n".join(context_parts)
+    
+    def process_message(self, user_message: str, metrics: Optional[MetricsCollector] = None) -> List[Track]:
+        """
+        Process a user message in the conversation.
+        
+        Args:
+            user_message: The user's natural language query
+            metrics: Optional metrics collector
+            
+        Returns:
+            List of discovered Track objects
+        """
+        # Build contextual query
+        contextual_query = self._build_context_prompt(user_message)
+        
+        # Add user message to history
+        self.conversation_history.append({
+            'role': 'user',
+            'content': user_message
+        })
+        
+        if logger:
+            logger.debug(f"Processing chat message: {user_message}")
+            logger.debug(f"Context prompt: {contextual_query}")
+        
+        # Use curator to get tracks
+        tracks = self.curator.curate(contextual_query, self.limit, self.engine, metrics)
+        
+        # Add response to history
+        self.conversation_history.append({
+            'role': 'assistant',
+            'content': f"Found {len(tracks)} tracks",
+            'tracks': [asdict(t) for t in tracks]
+        })
+        
+        # Accumulate all tracks discovered in session
+        self.all_tracks.extend(tracks)
+        
+        return tracks
+    
+    def get_session_tracks(self) -> List[Track]:
+        """Get all tracks discovered in this session."""
+        return self.all_tracks
+    
+    def clear_history(self):
+        """Clear conversation history but keep accumulated tracks."""
+        self.conversation_history = []
+        if logger:
+            logger.info("Cleared conversation history")
+    
+    def run_interactive(self):
+        """Run interactive chat loop."""
+        print(f"\n{HR}")
+        print(f"{BOLD}PLAYLIST BUILDER CHAT{RESET}")
+        print(f"{DIM}Conversational AI-powered music discovery{RESET}")
+        print(f"{HR}")
+        print(f"\n{CYAN}Model:{RESET} {self.model}")
+        print(f"{CYAN}Tracks per query:{RESET} {self.limit}")
+        print(f"\n{DIM}Type your music queries. Commands:{RESET}")
+        print(f"  {YELLOW}/save{RESET}    - Save discovered tracks for publishing")
+        print(f"  {YELLOW}/clear{RESET}   - Clear conversation context")
+        print(f"  {YELLOW}/tracks{RESET}  - Show all discovered tracks")
+        print(f"  {YELLOW}/help{RESET}    - Show help")
+        print(f"  {YELLOW}/quit{RESET}    - Exit chat")
+        print(f"\n{HR}\n")
+        
+        while True:
+            try:
+                # Get user input
+                user_input = input(f"{GREEN}You:{RESET} ").strip()
+                
+                if not user_input:
+                    continue
+                
+                # Handle commands
+                if user_input.lower() == '/quit' or user_input.lower() == '/exit':
+                    print(f"\n{DIM}Ending chat session...{RESET}")
+                    break
+                
+                if user_input.lower() == '/help':
+                    print(f"\n{BOLD}Chat Commands:{RESET}")
+                    print(f"  {YELLOW}/save{RESET}    - Save all discovered tracks to cache for publishing")
+                    print(f"  {YELLOW}/clear{RESET}   - Clear conversation context (start fresh)")
+                    print(f"  {YELLOW}/tracks{RESET}  - List all tracks discovered in this session")
+                    print(f"  {YELLOW}/quit{RESET}    - Exit the chat session")
+                    print(f"\n{BOLD}Tips:{RESET}")
+                    print(f"  - Use natural language: \"more like the first one but jazzier\"")
+                    print(f"  - Be specific: \"1970s funk with horn sections\"")
+                    print(f"  - Refine: \"less electronic, more acoustic\"\n")
+                    continue
+                
+                if user_input.lower() == '/clear':
+                    self.clear_history()
+                    print(f"{GREEN}✓{RESET} Conversation context cleared.\n")
+                    continue
+                
+                if user_input.lower() == '/tracks':
+                    if not self.all_tracks:
+                        print(f"{YELLOW}No tracks discovered yet.{RESET}\n")
+                    else:
+                        print(f"\n{BOLD}Discovered Tracks ({len(self.all_tracks)} total):{RESET}")
+                        for i, track in enumerate(self.all_tracks, 1):
+                            quality_indicator = "H" if "HI_RES" in track.quality else "L"
+                            print(f"  {i:2}. {track.title[:40]:<40} - {track.artist[:20]:<20} [{quality_indicator}]")
+                        print()
+                    continue
+                
+                if user_input.lower() == '/save':
+                    if not self.all_tracks:
+                        print(f"{YELLOW}No tracks to save. Discover some music first!{RESET}\n")
+                    else:
+                        try:
+                            os.makedirs(os.path.dirname(CACHE_FILE), exist_ok=True)
+                            with open(CACHE_FILE, 'w') as f:
+                                json.dump([asdict(t) for t in self.all_tracks], f, indent=2)
+                            print(f"{GREEN}✓{RESET} Saved {len(self.all_tracks)} tracks to cache.")
+                            print(f"{DIM}Use 'playlist-builder publish tidal --name \"Playlist Name\"' to sync.{RESET}\n")
+                        except Exception as e:
+                            print(f"{RED}Error saving tracks: {e}{RESET}\n")
+                    continue
+                
+                # Validate query
+                is_valid, error_msg = validate_query(user_input)
+                if not is_valid:
+                    print(f"{RED}Error: {error_msg}{RESET}\n")
+                    continue
+                
+                # Process the message
+                metrics = MetricsCollector()
+                metrics.start_operation("Chat Query")
+                
+                print(f"\n{CYAN}AI:{RESET} Searching for tracks...\n")
+                
+                try:
+                    tracks = self.process_message(user_input, metrics)
+                    
+                    if tracks:
+                        print(f"\n{GREEN}✓{RESET} Found {len(tracks)} tracks.")
+                        print(f"{DIM}Total in session: {len(self.all_tracks)} tracks{RESET}\n")
+                    else:
+                        print(f"\n{YELLOW}No tracks found for that query. Try rephrasing?{RESET}\n")
+                    
+                    metrics.end_operation(success=True)
+                    
+                except Exception as e:
+                    metrics.end_operation(success=False, error=str(e))
+                    if logger:
+                        logger.error(f"Chat query failed: {e}", exc_info=self.debug)
+                    print(f"{RED}Error: {e}{RESET}\n")
+                    
+            except KeyboardInterrupt:
+                print(f"\n\n{DIM}Interrupted. Use /quit to exit.{RESET}\n")
+                continue
+            except EOFError:
+                print(f"\n{DIM}Ending chat session...{RESET}")
+                break
+        
+        # Save tracks on exit if any were found
+        if self.all_tracks:
+            print(f"\n{BOLD}Session Summary:{RESET}")
+            print(f"  Discovered: {len(self.all_tracks)} tracks")
+            print(f"  Queries: {len([h for h in self.conversation_history if h['role'] == 'user'])}")
+            
+            save_prompt = input(f"\n{CYAN}Save tracks before exiting? [Y/n]:{RESET} ").strip().lower()
+            if save_prompt != 'n':
+                try:
+                    os.makedirs(os.path.dirname(CACHE_FILE), exist_ok=True)
+                    with open(CACHE_FILE, 'w') as f:
+                        json.dump([asdict(t) for t in self.all_tracks], f, indent=2)
+                    print(f"{GREEN}✓{RESET} Saved {len(self.all_tracks)} tracks.")
+                    print(f"{DIM}Use 'playlist-builder publish tidal --name \"Playlist Name\"' to sync.{RESET}")
+                except Exception as e:
+                    print(f"{RED}Error saving: {e}{RESET}")
+
+
 def ensure_venv():
     """Ensure virtual environment exists and is activated."""
     os.makedirs(BASE_DIR, exist_ok=True)
@@ -627,6 +848,22 @@ def main():
     
     subparsers = parser.add_subparsers(dest="cmd", help="Command")
     
+    # Chat command - interactive conversational session
+    chat_parser = subparsers.add_parser("chat", help="Interactive conversational discovery")
+    chat_parser.add_argument("-d", "--debug", action="store_true", help="Enable debug logging")
+    chat_parser.add_argument(
+        "-l", "--limit",
+        type=int,
+        default=CHAT_DEFAULT_LIMIT,
+        help=f"Max tracks per query (default: {CHAT_DEFAULT_LIMIT})"
+    )
+    chat_parser.add_argument(
+        "-m", "--model",
+        type=str,
+        default=GEMINI_MODEL,
+        help=f"Gemini model to use (default: {GEMINI_MODEL})"
+    )
+    
     query_parser = subparsers.add_parser("query", help="Query AI for tracks")
     query_parser.add_argument("query", help="Query to ask the AI")
     query_parser.add_argument("-d", "--debug", action="store_true", help="Enable debug logging")
@@ -644,7 +881,7 @@ def main():
     )
     
     publish_parser = subparsers.add_parser("publish", help="Publish playlist")
-    publish_parser.add_argument("provider", choices=["tidal", "spotify"], help="Music provider (tidal, spotify)")
+    publish_parser.add_argument("provider", choices=["tidal"], help="Music provider")
     publish_parser.add_argument("--name", required=True, help="Playlist name")
     publish_parser.add_argument("--replace", action="store_true", help="Replace existing playlist")
     publish_parser.add_argument("-d", "--debug", action="store_true", help="Enable debug logging")
@@ -804,7 +1041,29 @@ def main():
     engine = TidalProvider(config, CONFIG_FILE, args.debug)
     
     # Execute commands
-    if args.cmd == "query":
+    if args.cmd == "chat":
+        # Authenticate with Tidal first
+        print(f"\n{CYAN}Initializing chat session...{RESET}")
+        try:
+            with Spinner("Authenticating with Tidal..."):
+                engine.authenticate()
+            
+            # Create and run chat session
+            chat_session = ChatSession(
+                config=config,
+                engine=engine,
+                model=model,
+                limit=args.limit,
+                debug=args.debug
+            )
+            chat_session.run_interactive()
+            
+        except Exception as e:
+            logger.error(f"Chat session failed: {e}", exc_info=args.debug)
+            print(f"{RED}Error: {e}{RESET}")
+            sys.exit(1)
+    
+    elif args.cmd == "query":
         # Validate query input
         is_valid, error_msg = validate_query(args.query)
         if not is_valid:
@@ -845,7 +1104,7 @@ def main():
             
     elif args.cmd == "publish":
         if not os.path.exists(CACHE_FILE):
-            print(f"{RED}Error: Run 'query' first.{RESET}")
+            print(f"{RED}Error: No tracks to publish. Run 'chat' or 'query' first.{RESET}")
             sys.exit(1)
         
         # Validate playlist name
@@ -861,16 +1120,9 @@ def main():
             print(f"{RED}Error: Invalid playlist name.{RESET}")
             sys.exit(1)
         
-        # Determine provider
-        provider_name = args.provider.lower()
-        if provider_name == "spotify":
-            from spotify_engine import SpotifyProvider
-            publish_engine = SpotifyProvider(config, CONFIG_FILE, args.debug)
-            op_name = "Publish to Spotify (EXPERIMENTAL)"
-            print(f"{YELLOW}⚠ EXPERIMENTAL: Spotify support is experimental and may have issues.{RESET}")
-        else:
-            publish_engine = engine  # Use Tidal engine
-            op_name = "Publish to Tidal"
+        # Use Tidal engine
+        publish_engine = engine
+        op_name = "Publish to Tidal"
         
         metrics = MetricsCollector()
         op_metrics = metrics.start_operation(op_name)

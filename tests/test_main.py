@@ -30,8 +30,8 @@ import pytest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import main module components
-from main import Track, MusicCurator, print_help
-from constants import GEMINI_MODEL, GEMINI_3_FLASH, GEMINI_3_PRO, AVAILABLE_MODELS
+from main import Track, MusicCurator, ChatSession, print_help
+from constants import GEMINI_MODEL, GEMINI_3_FLASH, GEMINI_3_PRO, AVAILABLE_MODELS, CHAT_DEFAULT_LIMIT
 
 
 class TestTrack:
@@ -425,6 +425,155 @@ class TestMainFunction:
         mock_rmtree.assert_called()
 
 
+class TestChatSession:
+    """Test ChatSession class."""
+    
+    def setup_method(self):
+        """Initialize logger for each test."""
+        import main
+        from utils import setup_logging
+        main.logger = setup_logging(debug=False)
+    
+    @patch('google.genai.Client')
+    def test_init(self, mock_client_class, sample_config):
+        """Test ChatSession initialization."""
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        
+        mock_engine = MagicMock()
+        
+        session = ChatSession(
+            config=sample_config,
+            engine=mock_engine,
+            model=GEMINI_MODEL,
+            limit=CHAT_DEFAULT_LIMIT,
+            debug=False
+        )
+        
+        assert session.config == sample_config
+        assert session.engine == mock_engine
+        assert session.model == GEMINI_MODEL
+        assert session.limit == CHAT_DEFAULT_LIMIT
+        assert session.debug is False
+        assert session.conversation_history == []
+        assert session.all_tracks == []
+    
+    @patch('google.genai.Client')
+    def test_build_context_prompt_no_history(self, mock_client_class, sample_config):
+        """Test context prompt building with no history."""
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        
+        mock_engine = MagicMock()
+        session = ChatSession(sample_config, mock_engine)
+        
+        prompt = session._build_context_prompt("find jazz tracks")
+        
+        assert "find jazz tracks" in prompt
+        assert "Previous conversation context" not in prompt
+    
+    @patch('google.genai.Client')
+    def test_build_context_prompt_with_history(self, mock_client_class, sample_config):
+        """Test context prompt building with conversation history."""
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        
+        mock_engine = MagicMock()
+        session = ChatSession(sample_config, mock_engine)
+        
+        # Add history
+        session.conversation_history = [
+            {'role': 'user', 'content': 'jazz classics'},
+            {'role': 'assistant', 'content': 'Found 5 tracks', 'tracks': [
+                {'title': 'Take Five', 'artist': 'Dave Brubeck'}
+            ]},
+        ]
+        
+        prompt = session._build_context_prompt("more like that")
+        
+        assert "more like that" in prompt
+        assert "Previous conversation context" in prompt
+        assert "jazz classics" in prompt
+        assert "Take Five" in prompt
+    
+    @patch('google.genai.Client')
+    def test_process_message(self, mock_client_class, sample_config):
+        """Test processing a message adds to history."""
+        mock_client = MagicMock()
+        mock_response = MagicMock()
+        mock_response.text = '[{"title": "Test Track", "artist": "Test Artist"}]'
+        mock_client.models.generate_content.return_value = mock_response
+        mock_client_class.return_value = mock_client
+        
+        mock_engine = MagicMock()
+        mock_result = {
+            'status': 'STRICT',
+            'match': MagicMock(),
+            'score': 0.95
+        }
+        mock_result['match'].name = "Test Track"
+        mock_result['match'].id = "12345"
+        mock_result['match'].audio_quality = "HI_RES"
+        mock_result['match'].isrc = "USRC12345678"
+        mock_result['match'].artist.name = "Test Artist"
+        mock_result['match'].album.name = "Test Album"
+        mock_result['match'].album.release_date.year = 2020
+        mock_engine._resolve_best_node.return_value = mock_result
+        
+        session = ChatSession(sample_config, mock_engine)
+        
+        tracks = session.process_message("find jazz")
+        
+        assert len(session.conversation_history) == 2
+        assert session.conversation_history[0]['role'] == 'user'
+        assert session.conversation_history[0]['content'] == 'find jazz'
+        assert session.conversation_history[1]['role'] == 'assistant'
+        assert len(session.all_tracks) > 0
+    
+    @patch('google.genai.Client')
+    def test_get_session_tracks(self, mock_client_class, sample_config):
+        """Test retrieving all session tracks."""
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        
+        mock_engine = MagicMock()
+        session = ChatSession(sample_config, mock_engine)
+        
+        # Add some tracks
+        track1 = Track(title="Track 1", artist="Artist 1")
+        track2 = Track(title="Track 2", artist="Artist 2")
+        session.all_tracks = [track1, track2]
+        
+        tracks = session.get_session_tracks()
+        
+        assert len(tracks) == 2
+        assert tracks[0].title == "Track 1"
+        assert tracks[1].title == "Track 2"
+    
+    @patch('google.genai.Client')
+    def test_clear_history(self, mock_client_class, sample_config):
+        """Test clearing conversation history."""
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        
+        mock_engine = MagicMock()
+        session = ChatSession(sample_config, mock_engine)
+        
+        # Add history and tracks
+        session.conversation_history = [
+            {'role': 'user', 'content': 'test'},
+            {'role': 'assistant', 'content': 'response', 'tracks': []},
+        ]
+        track = Track(title="Test", artist="Artist")
+        session.all_tracks = [track]
+        
+        session.clear_history()
+        
+        assert session.conversation_history == []
+        # Tracks should be preserved
+        assert len(session.all_tracks) == 1
+
+
 class TestCLIArgumentParsing:
     """Test CLI argument parsing accepts flags in any position.
     
@@ -435,7 +584,7 @@ class TestCLIArgumentParsing:
     def _create_parser(self):
         """Create argument parser matching main.py structure."""
         import argparse
-        from constants import DEFAULT_LIMIT, GEMINI_MODEL
+        from constants import DEFAULT_LIMIT, CHAT_DEFAULT_LIMIT, GEMINI_MODEL
         
         parser = argparse.ArgumentParser(add_help=False)
         parser.add_argument("-d", "--debug", action="store_true", default=False)
@@ -444,6 +593,12 @@ class TestCLIArgumentParsing:
         
         subparsers = parser.add_subparsers(dest="cmd")
         
+        # Chat command
+        chat_parser = subparsers.add_parser("chat")
+        chat_parser.add_argument("-d", "--debug", action="store_true", default=False)
+        chat_parser.add_argument("-l", "--limit", type=int, default=CHAT_DEFAULT_LIMIT)
+        chat_parser.add_argument("-m", "--model", type=str, default=GEMINI_MODEL)
+        
         query_parser = subparsers.add_parser("query")
         query_parser.add_argument("query")
         query_parser.add_argument("-d", "--debug", action="store_true", default=False)
@@ -451,7 +606,7 @@ class TestCLIArgumentParsing:
         query_parser.add_argument("-m", "--model", type=str, default=GEMINI_MODEL)
         
         publish_parser = subparsers.add_parser("publish")
-        publish_parser.add_argument("provider", choices=["tidal", "spotify"])
+        publish_parser.add_argument("provider", choices=["tidal"])
         publish_parser.add_argument("--name", required=True)
         publish_parser.add_argument("--replace", action="store_true")
         publish_parser.add_argument("-d", "--debug", action="store_true", default=False)
@@ -515,12 +670,31 @@ class TestCLIArgumentParsing:
     def test_publish_all_flags(self):
         """Verify all publish flags work together."""
         parser = self._create_parser()
-        args = parser.parse_args(['publish', 'spotify', '--name', 'Test', '--replace', '--debug'])
+        args = parser.parse_args(['publish', 'tidal', '--name', 'Test', '--replace', '--debug'])
         
         assert args.cmd == 'publish'
-        assert args.provider == 'spotify'
+        assert args.provider == 'tidal'
         assert args.name == 'Test'
         assert args.replace is True
+        assert args.debug is True
+    
+    def test_chat_command(self):
+        """Verify chat command parsing."""
+        parser = self._create_parser()
+        args = parser.parse_args(['chat'])
+        
+        assert args.cmd == 'chat'
+        assert args.limit == CHAT_DEFAULT_LIMIT
+        assert args.debug is False
+    
+    def test_chat_with_flags(self):
+        """Verify chat command with flags."""
+        parser = self._create_parser()
+        args = parser.parse_args(['chat', '--model', '3-pro', '--limit', '20', '--debug'])
+        
+        assert args.cmd == 'chat'
+        assert args.model == '3-pro'
+        assert args.limit == 20
         assert args.debug is True
     
     def test_query_defaults_without_flags(self):

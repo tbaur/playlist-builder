@@ -45,6 +45,7 @@ if sys.version_info < MIN_PYTHON_VERSION:
 
 # --- CONFIGURATION CONSTANTS ---
 DEFAULT_LIMIT = 10
+CHAT_DEFAULT_LIMIT = 10  # Default track limit for chat sessions
 # Auto-detect optimal worker count, but cap at reasonable maximum
 try:
     import multiprocessing
