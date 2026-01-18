@@ -81,7 +81,6 @@ def print_help():
     playlist-builder {BOLD}publish{RESET} <tidal|spotify> --name <name> [--replace]
     playlist-builder {BOLD}keychain{RESET} <set|get|delete|list> [key] [value]
     playlist-builder {BOLD}reset{RESET} | {BOLD}rebuild{RESET}
-    playlist-builder {BOLD}--run-code-tests{RESET} [--coverage] [--verbose]
 
 {BOLD}COMMANDS{RESET}
     {CYAN}query{RESET} <query>     Discover tracks using AI (Gemini)
@@ -95,9 +94,6 @@ def print_help():
     --model <model>          Gemini model (default: 3-flash)
     --limit <n>              Max tracks (default: 10, range: 1-100)
     --debug                  Enable debug logging
-    --run-code-tests         Run test suite
-    --coverage               Generate coverage report
-    --verbose, -v            Verbose output
 
 {BOLD}EXAMPLES{RESET}
     playlist-builder query "Jazz classics for late night"
@@ -628,9 +624,6 @@ def main():
         help=f"Gemini model to use (default: {GEMINI_MODEL}). "
              f"Options: {', '.join(AVAILABLE_MODELS.keys())}"
     )
-    parser.add_argument("--run-code-tests", action="store_true", help="Run test suite")
-    parser.add_argument("--coverage", action="store_true", help="Run with coverage report (requires --run-code-tests)")
-    parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output (requires --run-code-tests)")
     
     subparsers = parser.add_subparsers(dest="cmd", help="Command")
     
@@ -793,116 +786,6 @@ def main():
         except Exception as e:
             handle_error_with_exit(e, f"Rebuild failed: {e}", logger, exit_code=0)
         sys.exit(0)
-    
-    # Handle --run-code-tests flag
-    if args.run_code_tests:
-        # Tests must be run from the repo directory (where tests/ folder exists)
-        cwd = os.getcwd()
-        
-        # Check if we're in a repo with tests
-        if not os.path.exists(os.path.join(cwd, "tests")):
-            print(f"{RED}Error: tests/ directory not found in current directory.{RESET}")
-            print(f"{YELLOW}cd to the repository directory before running tests.{RESET}")
-            print(f"{DIM}Or use: cd ~/github/playlist-builder && bash run_tests.sh{RESET}")
-            sys.exit(1)
-        
-        # Ensure sandbox venv exists (create if needed, but don't re-execute)
-        os.makedirs(BASE_DIR, exist_ok=True)
-        if not os.path.exists(VENV_DIR):
-            logger.info("Creating sandbox virtual environment for tests")
-            print(f"{YELLOW}Creating sandbox environment...{RESET}")
-            try:
-                venv_abs_path = os.path.abspath(VENV_DIR)
-                python_exe = os.path.abspath(sys.executable)
-                subprocess.run(
-                    [python_exe, "-m", "venv", venv_abs_path],
-                    check=True,
-                    capture_output=True,
-                    timeout=300,
-                    shell=False
-                )
-                pip_path = os.path.join(venv_abs_path, "bin", "pip")
-                if not os.path.exists(pip_path):
-                    raise FileNotFoundError(f"pip not found at {pip_path}")
-                
-                # Install runtime dependencies
-                script_dir = os.path.dirname(os.path.abspath(__file__))
-                requirements_file = os.path.join(script_dir, "requirements.txt")
-                if os.path.exists(requirements_file):
-                    logger.info("Installing dependencies from requirements.txt")
-                    subprocess.run(
-                        [pip_path, "install", "-r", os.path.abspath(requirements_file)],
-                        check=True,
-                        capture_output=True,
-                        timeout=600,
-                        shell=False
-                    )
-                else:
-                    runtime_deps = ["google-genai", "tidalapi"]
-                    subprocess.run(
-                        [pip_path, "install"] + runtime_deps,
-                        check=True,
-                        capture_output=True,
-                        timeout=600,
-                        shell=False
-                    )
-            except Exception as e:
-                logger.error(f"Failed to create sandbox venv: {e}")
-                print(f"{RED}Error: Failed to create sandbox environment.{RESET}")
-                sys.exit(1)
-        
-        # Use sandbox venv for running tests
-        pytest_path = os.path.join(VENV_DIR, "bin", "pytest")
-        
-        if not os.path.exists(pytest_path):
-            print(f"{CYAN}Installing test dependencies in sandbox...{RESET}")
-            pip_path = os.path.join(VENV_DIR, "bin", "pip")
-            test_requirements = os.path.join(cwd, "requirements-test.txt")
-            if os.path.exists(test_requirements):
-                try:
-                    subprocess.run(
-                        [pip_path, "install", "-r", os.path.abspath(test_requirements)],
-                        check=True,
-                        capture_output=True,
-                        timeout=600,
-                        shell=False
-                    )
-                except subprocess.CalledProcessError as e:
-                    print(f"{RED}Error: Failed to install test dependencies.{RESET}")
-                    sys.exit(1)
-            else:
-                # Fallback: install pytest directly
-                subprocess.run(
-                    [pip_path, "install", "pytest", "pytest-cov", "pytest-mock", "pytest-timeout"],
-                    check=True,
-                    capture_output=True,
-                    timeout=600,
-                    shell=False
-                )
-        
-        test_args = ["tests"]
-        if args.coverage:
-            test_args.extend(["--cov=.", "--cov-report=html", "--cov-report=term-missing"])
-        if args.verbose:
-            test_args.append("-v")
-        
-        try:
-            print(f"{CYAN}Running test suite from: {cwd}{RESET}\n")
-            # Set PYTHONPATH to include current directory (repo root)
-            env = os.environ.copy()
-            env['PYTHONPATH'] = cwd + (os.pathsep + env.get('PYTHONPATH', ''))
-            result = subprocess.run(
-                [os.path.abspath(pytest_path)] + test_args, 
-                cwd=cwd,  # Run from current directory (repo)
-                env=env,
-                timeout=3600,  # 1 hour timeout for tests
-                shell=False  # Explicit: never use shell
-            )
-            sys.exit(result.returncode)
-        except Exception as e:
-            logger.error(f"Test execution failed: {e}")
-            print(f"{RED}Error: Test execution failed: {e}{RESET}")
-            sys.exit(1)
     
     # Ensure venv exists
     ensure_venv()

@@ -145,8 +145,6 @@ playlist-builder keychain delete CUSTOM_KEY               # Delete a secret
 playlist-builder --help              # Show help
 playlist-builder reset               # Wipe credentials and cache
 playlist-builder rebuild             # Rebuild virtual environment
-playlist-builder --run-code-tests    # Run test suite
-playlist-builder --run-code-tests --coverage --verbose  # Run tests with coverage
 ```
 
 ## Models
@@ -170,16 +168,12 @@ Available Gemini models:
 Run the test suite:
 
 ```bash
-playlist-builder --run-code-tests
-# or
 pytest
 ```
 
 Run with coverage:
 
 ```bash
-playlist-builder --run-code-tests --coverage
-# or
 pytest --cov=. --cov-report=html
 ```
 

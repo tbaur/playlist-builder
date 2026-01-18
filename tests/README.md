@@ -26,10 +26,6 @@ pip install -r requirements-test.txt
 ### Run All Tests
 
 ```bash
-# Using the application command
-playlist-builder --run-code-tests
-
-# Or directly with pytest
 pytest
 ```
 
@@ -46,10 +42,6 @@ pytest tests/test_integration.py
 ### Run with Coverage
 
 ```bash
-# Using the application command
-playlist-builder --run-code-tests --coverage
-
-# Or directly with pytest
 pytest --cov=. --cov-report=html
 
 # View HTML report

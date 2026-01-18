@@ -441,9 +441,6 @@ class TestCLIArgumentParsing:
         parser.add_argument("-d", "--debug", action="store_true", default=False)
         parser.add_argument("-l", "--limit", type=int, default=DEFAULT_LIMIT)
         parser.add_argument("-m", "--model", type=str, default=GEMINI_MODEL)
-        parser.add_argument("--run-code-tests", action="store_true")
-        parser.add_argument("--coverage", action="store_true")
-        parser.add_argument("--verbose", "-v", action="store_true")
         
         subparsers = parser.add_subparsers(dest="cmd")
         

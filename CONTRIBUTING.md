@@ -74,9 +74,6 @@ pytest tests/ --cov=. --cov-report=html --cov-report=term-missing
 # Run specific test file
 pytest tests/test_main.py -v
 
-# Run tests using the CLI
-playlist-builder --run-code-tests --coverage --verbose
-
 # Or use the test runner script
 bash run_tests.sh
 ```
