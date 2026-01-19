@@ -52,7 +52,7 @@ playlist-builder chat --model 3-pro --limit 20
 
 Chat commands:
 - `/tracks` — Show all discovered tracks
-- `/remove <pattern>` — Remove tracks by artist or title (e.g., `/remove elif`)
+- `/remove <pattern>` — Remove tracks by artist or title (e.g., `/remove Luma`)
 - `/new` — Clear tracks & context, start a new playlist
 - `/clear` — Clear conversation context only
 - `/publish <name>` — Publish to Tidal (replace, or use `--append`)
@@ -60,7 +60,7 @@ Chat commands:
 
 **Workflow:** Query → `/remove` unwanted → `/publish "My Playlist"` → `/new` → repeat
 
-**Smart detection:** If you type "I don't like <artist>", the chat will offer to remove those tracks instead of running a new query.
+**Smart detection:** If you type "I don't like Luma", the chat will offer to remove those tracks instead of running a new query.
 
 ### Single Query
 

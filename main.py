@@ -74,6 +74,16 @@ class Track:
 
 def print_help():
     """Display simplified help."""
+    # Use fixed-width formatting for consistent alignment
+    cmd_width = 20  # Width for command column
+    opt_width = 22  # Width for option column
+    
+    def cmd(name, desc):
+        return f"    {CYAN}{name:{cmd_width}}{RESET}{desc}"
+    
+    def opt(name, desc):
+        return f"    {name:{opt_width}}{desc}"
+    
     print(f"""
 {BOLD}playlist-builder{RESET} - AI-powered music discovery and playlist curation
 
@@ -85,17 +95,17 @@ def print_help():
     playlist-builder {BOLD}reset{RESET} | {BOLD}rebuild{RESET}
 
 {BOLD}COMMANDS{RESET}
-    {CYAN}chat{RESET}               Interactive conversational discovery session
-    {CYAN}query{RESET} <query>      One-shot track discovery using AI (Gemini)
-    {CYAN}publish{RESET} tidal      Sync results to Tidal playlist
-    {CYAN}keychain{RESET}            Manage secrets (macOS Keychain)
-    {CYAN}reset{RESET}               Clear cache and credentials
-    {CYAN}rebuild{RESET}             Reinstall virtual environment
+{cmd("chat", "Interactive conversational discovery session")}
+{cmd("query <query>", "One-shot track discovery using AI (Gemini)")}
+{cmd("publish tidal", "Sync results to Tidal playlist")}
+{cmd("keychain", "Manage secrets (macOS Keychain)")}
+{cmd("reset", "Clear cache and credentials")}
+{cmd("rebuild", "Reinstall virtual environment")}
 
 {BOLD}OPTIONS{RESET}
-    --model <model>          Gemini model (default: 3-flash)
-    --limit <n>              Max tracks per query (default: 10, range: 1-100)
-    --debug                  Enable debug logging
+{opt("--model <model>", "Gemini model (default: 3-flash)")}
+{opt("--limit <n>", "Max tracks per query (default: 10, range: 1-100)")}
+{opt("--debug", "Enable debug logging")}
 
 {BOLD}EXAMPLES{RESET}
     playlist-builder chat
@@ -574,7 +584,10 @@ class ChatSession:
         while True:
             try:
                 # Get user input
-                user_input = input(f"{GREEN}You:{RESET} ").strip()
+                # Wrap ANSI codes in \001 and \002 so readline calculates prompt length correctly
+                # (prevents up-arrow history from corrupting/appending text)
+                prompt = f"\001{GREEN}\002You:\001{RESET}\002 "
+                user_input = input(prompt).strip()
                 
                 if not user_input:
                     continue
@@ -703,7 +716,8 @@ class ChatSession:
                     
                     # Ask user to confirm
                     try:
-                        confirm = input(f"{GREEN}Remove tracks matching \"{pattern}\"? (y/n):{RESET} ").strip().lower()
+                        confirm_prompt = f"\001{GREEN}\002Remove tracks matching \"{pattern}\"? (y/n):\001{RESET}\002 "
+                        confirm = input(confirm_prompt).strip().lower()
                         if confirm in ('y', 'yes'):
                             removed = self.remove_tracks(pattern)
                             if removed > 0:
@@ -847,17 +861,13 @@ def ensure_venv():
         try:
             result = subprocess.run(
                 [python_path, script_path] + sys.argv[1:], 
-                timeout=3600,
                 shell=False  # Explicit: never use shell
+                # No timeout - interactive sessions can run indefinitely
             )
             sys.exit(result.returncode)
         except KeyboardInterrupt:
             # Clean exit on Ctrl+C
             sys.exit(0)
-        except subprocess.TimeoutExpired:
-            logger.error("Script execution timed out")
-            print(f"{RED}Error: Script execution timed out.{RESET}")
-            sys.exit(1)
 
 def load_or_create_config() -> dict:
     """Load configuration or create new one."""

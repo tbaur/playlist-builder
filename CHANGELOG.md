@@ -11,7 +11,7 @@
 - **In-Chat Publishing** — Publish directly from chat with `/publish <name>`
   - Replaces playlist by default, use `--append` to add to existing
 - **Smart Track Filtering** — `/remove <pattern>` filters tracks by artist or title
-- **Refinement Detection** — Phrases like "I don't like elif" prompt to remove instead of query
+- **Refinement Detection** — Phrases like "I don't like Luma" prompt to remove instead of query
 - **Readline Support** — Up/down arrow history and line editing in chat
 
 ### Changed
