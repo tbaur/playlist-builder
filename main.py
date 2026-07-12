@@ -1048,7 +1048,10 @@ def main():
     keychain_set.add_argument("key", help="Secret key name (e.g., GEMINI_API_KEY)")
     keychain_set.add_argument("value", nargs='?', help="Secret value (will prompt if not provided)")
     
-    keychain_get = keychain_subparsers.add_parser("get", help="Retrieve a secret from Keychain")
+    keychain_get = keychain_subparsers.add_parser(
+        "get",
+        help="Check whether a secret exists in Keychain (does not print the value)",
+    )
     keychain_get.add_argument("key", help="Secret key name")
     
     keychain_delete = keychain_subparsers.add_parser("delete", help="Delete a secret from Keychain")
@@ -1115,11 +1118,14 @@ def main():
         
         elif args.keychain_cmd == "get":
             value = get_secret(args.key)
-            if value:
-                print(f"{GREEN}✓{RESET} Secret '{args.key}': {value}")
-            else:
+            if not value:
                 print(f"{YELLOW}Secret '{args.key}' not found in Keychain.{RESET}")
                 sys.exit(1)
+            print(
+                f"{GREEN}✓{RESET} Secret '{args.key}' is stored "
+                f"({len(value)} characters)"
+            )
+            print(f"{DIM}Value is not printed. Use Keychain Access to view it.{RESET}")
         
         elif args.keychain_cmd == "delete":
             if delete_secret(args.key):

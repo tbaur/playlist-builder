@@ -424,6 +424,41 @@ class TestMainFunction:
         
         mock_rmtree.assert_called()
 
+    @patch('main.sys.platform', 'darwin')
+    @patch('main.sys.argv', ['main.py', 'keychain', 'get', 'GEMINI_API_KEY'])
+    def test_keychain_get_hides_value(
+        self, mock_keychain_operations, capsys,
+    ):
+        """keychain get confirms presence without printing the secret."""
+        from main import get_secret, main, store_secret
+
+        store_secret('GEMINI_API_KEY', 'super-secret-value')
+        assert get_secret('GEMINI_API_KEY') == 'super-secret-value'
+
+        with pytest.raises(SystemExit) as exc:
+            main()
+        assert exc.value.code == 0
+
+        out = capsys.readouterr().out
+        assert 'GEMINI_API_KEY' in out
+        assert 'stored' in out
+        assert 'super-secret-value' not in out
+
+    @patch('main.sys.platform', 'darwin')
+    @patch('main.sys.argv', ['main.py', 'keychain', 'get', 'MISSING_KEY'])
+    def test_keychain_get_missing(
+        self, mock_keychain_operations, capsys,
+    ):
+        """keychain get exits non-zero when the secret is absent."""
+        from main import main
+
+        with pytest.raises(SystemExit) as exc:
+            main()
+        assert exc.value.code == 1
+
+        out = capsys.readouterr().out
+        assert 'not found' in out
+
 
 class TestChatSession:
     """Test ChatSession class."""
