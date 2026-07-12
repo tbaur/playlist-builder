@@ -5,6 +5,13 @@ onward this file is maintained automatically by
 [release-please](https://github.com/googleapis/release-please) based on
 [Conventional Commits](https://www.conventionalcommits.org). See [RELEASING.md](RELEASING.md).
 
+## [1.1.1](https://github.com/tbaur/playlist-builder/compare/v1.1.0...v1.1.1) (2026-07-12)
+
+
+### Bug Fixes
+
+* **license:** restore canonical Apache 2.0 LICENSE text ([b68d744](https://github.com/tbaur/playlist-builder/commit/b68d7441b24177c4b47d864983b940f8e7427c8a))
+
 ## [1.1.0] - 2026-01-18
 
 ### Added
