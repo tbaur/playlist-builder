@@ -1,5 +1,10 @@
 # Changelog
 
+All notable changes to this project are documented in this file. From 1.1.1
+onward this file is maintained automatically by
+[release-please](https://github.com/googleapis/release-please) based on
+[Conventional Commits](https://www.conventionalcommits.org). See [RELEASING.md](RELEASING.md).
+
 ## [1.1.0] - 2026-01-18
 
 ### Added

@@ -20,6 +20,10 @@ import sys
 from dataclasses import dataclass
 from enum import Enum
 
+# --- VERSION ---
+# Bumped by release-please; do not edit by hand for routine releases.
+__version__ = "1.1.0"  # x-release-please-version
+
 # --- PATHS ---
 BASE_DIR = os.path.expanduser("~/.config/playlist-builder")
 VENV_DIR = os.path.join(BASE_DIR, ".venv")

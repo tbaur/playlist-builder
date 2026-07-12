@@ -14,7 +14,32 @@ Thank you for your interest in contributing to Playlist Builder.
 3. Make changes following the code style below
 4. Add tests for new functionality
 5. Ensure all tests pass: `pytest`
-6. Submit a pull request with a clear description
+6. Submit a pull request with a **Conventional Commit** title
+
+### Commit / PR titles
+
+Follow [Conventional Commits](https://www.conventionalcommits.org). PR titles
+drive automated releases via release-please, so use prefixes like:
+
+- `feat:` — New feature
+- `fix:` — Bug fix
+- `docs:` — Documentation only
+- `test:` — Test changes
+- `refactor:` — Code refactoring
+- `chore:` / `ci:` — Maintenance (no release)
+
+Example: `feat: add /shuffle chat command`
+
+> `CHANGELOG.md` is generated automatically by release-please from your
+> Conventional Commit / PR titles — do not edit it by hand for routine
+> releases. See [RELEASING.md](RELEASING.md).
+
+### PR checklist
+
+- [ ] Tests added/updated
+- [ ] Tests pass (`pytest`)
+- [ ] Documentation updated if needed
+- [ ] Descriptive PR title (Conventional Commits)
 
 ## Development Setup
 
