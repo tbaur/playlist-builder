@@ -14,7 +14,7 @@
 # limitations under the License.
 
 """
-Playlist Builder v1.1.0 - AI-Powered Music Discovery
+Playlist Builder - AI-Powered Music Discovery
 =====================================================
 Target: macOS Native (Python 3.12+)
 """
