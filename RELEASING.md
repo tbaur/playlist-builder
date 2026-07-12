@@ -45,6 +45,16 @@ A release therefore reduces to: merge the code PR(s), then merge the Release PR.
   a required check would leave every Release PR permanently unmergeable. Code
   PRs still run Tests; review those before merging.
 
+### Actions permission (required once)
+
+Under **Settings → Actions → General → Workflow permissions**:
+
+1. **Read and write permissions**
+2. **Allow GitHub Actions to create and approve pull requests**
+
+Without (2), release-please can update its branch but cannot open the Release PR
+(`GitHub Actions is not permitted to create or approve pull requests`).
+
 ## Notes
 
 - **PR titles drive releases.** With squash merges, the PR title becomes the
