@@ -424,6 +424,44 @@ class TestMainFunction:
         
         mock_rmtree.assert_called()
 
+    @patch('main.sys.platform', 'darwin')
+    @patch('main.sys.argv', ['main.py', 'keychain', 'get', 'GEMINI_API_KEY'])
+    def test_keychain_get_hides_value_by_default(
+        self, mock_keychain_operations, capsys,
+    ):
+        """keychain get confirms presence without printing the secret."""
+        from main import get_secret, main, store_secret
+
+        store_secret('GEMINI_API_KEY', 'super-secret-value')
+        assert get_secret('GEMINI_API_KEY') == 'super-secret-value'
+
+        with pytest.raises(SystemExit) as exc:
+            main()
+        assert exc.value.code == 0
+
+        out = capsys.readouterr().out
+        assert 'GEMINI_API_KEY' in out
+        assert 'stored' in out
+        assert '--reveal' in out
+        assert 'super-secret-value' not in out
+
+    @patch('main.sys.platform', 'darwin')
+    @patch('main.sys.argv', ['main.py', 'keychain', 'get', 'GEMINI_API_KEY', '--reveal'])
+    def test_keychain_get_reveal_prints_value(
+        self, mock_keychain_operations, capsys,
+    ):
+        """keychain get --reveal is the explicit opt-in to print the secret."""
+        from main import main, store_secret
+
+        store_secret('GEMINI_API_KEY', 'super-secret-value')
+
+        with pytest.raises(SystemExit) as exc:
+            main()
+        assert exc.value.code == 0
+
+        out = capsys.readouterr().out
+        assert 'super-secret-value' in out
+
 
 class TestChatSession:
     """Test ChatSession class."""

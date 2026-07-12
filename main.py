@@ -1048,8 +1048,16 @@ def main():
     keychain_set.add_argument("key", help="Secret key name (e.g., GEMINI_API_KEY)")
     keychain_set.add_argument("value", nargs='?', help="Secret value (will prompt if not provided)")
     
-    keychain_get = keychain_subparsers.add_parser("get", help="Retrieve a secret from Keychain")
+    keychain_get = keychain_subparsers.add_parser(
+        "get",
+        help="Check whether a secret exists (use --reveal to print the value)",
+    )
     keychain_get.add_argument("key", help="Secret key name")
+    keychain_get.add_argument(
+        "--reveal",
+        action="store_true",
+        help="Print the secret value to stdout (opt-in; avoid on shared screens)",
+    )
     
     keychain_delete = keychain_subparsers.add_parser("delete", help="Delete a secret from Keychain")
     keychain_delete.add_argument("key", help="Secret key name")
@@ -1115,11 +1123,18 @@ def main():
         
         elif args.keychain_cmd == "get":
             value = get_secret(args.key)
-            if value:
-                print(f"{GREEN}✓{RESET} Secret '{args.key}': {value}")
-            else:
+            if not value:
                 print(f"{YELLOW}Secret '{args.key}' not found in Keychain.{RESET}")
                 sys.exit(1)
+            if args.reveal:
+                # Intentional opt-in: user asked to print the secret to stdout.
+                print(value)  # codeql[py/clear-text-logging-sensitive-data]
+            else:
+                print(
+                    f"{GREEN}✓{RESET} Secret '{args.key}' is stored "
+                    f"({len(value)} characters)"
+                )
+                print(f"{DIM}Use --reveal to print the value.{RESET}")
         
         elif args.keychain_cmd == "delete":
             if delete_secret(args.key):
