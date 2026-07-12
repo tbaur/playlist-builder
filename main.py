@@ -1050,14 +1050,9 @@ def main():
     
     keychain_get = keychain_subparsers.add_parser(
         "get",
-        help="Check whether a secret exists (use --reveal to print the value)",
+        help="Check whether a secret exists in Keychain (does not print the value)",
     )
     keychain_get.add_argument("key", help="Secret key name")
-    keychain_get.add_argument(
-        "--reveal",
-        action="store_true",
-        help="Print the secret value to stdout (opt-in; avoid on shared screens)",
-    )
     
     keychain_delete = keychain_subparsers.add_parser("delete", help="Delete a secret from Keychain")
     keychain_delete.add_argument("key", help="Secret key name")
@@ -1126,15 +1121,11 @@ def main():
             if not value:
                 print(f"{YELLOW}Secret '{args.key}' not found in Keychain.{RESET}")
                 sys.exit(1)
-            if args.reveal:
-                # Intentional opt-in: user asked to print the secret to stdout.
-                print(value)  # codeql[py/clear-text-logging-sensitive-data]
-            else:
-                print(
-                    f"{GREEN}✓{RESET} Secret '{args.key}' is stored "
-                    f"({len(value)} characters)"
-                )
-                print(f"{DIM}Use --reveal to print the value.{RESET}")
+            print(
+                f"{GREEN}✓{RESET} Secret '{args.key}' is stored "
+                f"({len(value)} characters)"
+            )
+            print(f"{DIM}Value is not printed. Use Keychain Access to view it.{RESET}")
         
         elif args.keychain_cmd == "delete":
             if delete_secret(args.key):
