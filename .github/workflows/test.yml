@@ -1,9 +1,9 @@
 name: Tests
 
 on:
-  push:
-    branches: [ main, develop ]
   pull_request:
+    branches: [ main, develop ]
+  merge_group:
     branches: [ main, develop ]
   workflow_dispatch:
 
