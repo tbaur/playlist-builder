@@ -31,7 +31,7 @@ git tag + GitHub Release notes only.
    - creates the `vX.Y.Z` git tag,
    - publishes a GitHub Release with the changelog notes.
 
-A release therefore reduces to: merge the code PR(s), approve the Release PR's checks, then merge the Release PR.
+To release, merge the code PR(s), approve the Release PR's checks, then merge the Release PR.
 
 ## Approve the Release PR checks
 
@@ -43,7 +43,7 @@ The Release PR is authored by `github-actions[bot]`, because `release.yml` passe
 - The approval does not stick. It is needed on every release, and again whenever release-please updates an open Release PR.
 - **Merging without approving turns the runs red.** They finalise as `failure` with zero jobs and no logs. That means nobody approved them, not that anything broke.
 
-This gate arrived with GitHub's [bot-created pull requests change](https://github.blog/changelog/2026-06-11-bot-created-pull-requests-can-run-workflows-if-approved/) and reached these repos in late August 2026. It applies to same-repo branches, not just forks, and has no repository-level opt-out. The only way to remove the step is to author the Release PR as a different identity, which needs a GitHub App or a PAT. Neither is set up here, and the click is cheaper.
+GitHub's [bot-created pull requests change](https://github.blog/changelog/2026-06-11-bot-created-pull-requests-can-run-workflows-if-approved/) added this approval step. It reached these repos in late August 2026. It applies to same-repo branches, not just forks, and has no repository-level opt-out. The only way to remove the step is to author the Release PR as a different identity, which needs a GitHub App or a PAT. Neither is set up here, and the click is cheaper.
 
 ## Branch protection
 
@@ -67,9 +67,7 @@ Without (2), release-please can update its branch but cannot open the Release PR
 
 ## Notes
 
-- **PR titles drive releases.** With squash merges, the PR title becomes the
-  commit release-please reads. `chore:` / `docs:` / `ci:` titles intentionally
-  produce no release.
+- **PR titles drive releases.** With squash merges, the PR title becomes the commit that release-please reads. `chore:` / `docs:` / `ci:` titles intentionally produce no release.
 - **Version source of truth** is `.release-please-manifest.json`.
   `constants.__version__` is kept in sync via an `x-release-please-version`
   marker — do not hand-edit either for routine releases.
